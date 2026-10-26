@@ -9,6 +9,68 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ## [Changelog]
 
+### 0.2.0 — palet, skala, dan saklar tema (2026-10-26)
+
+**Masalahnya diukur lebih dulu**, di Chrome pada halaman contoh 1440x900, 282 elemen terlihat, angka
+identik di kedua skema: 16 ukuran huruf berbeda dengan yang terkecil 10,56 px, 5 nilai
+`border-radius`, 9 nilai `gap`, tiga tinggi kontrol dalam satu baris alat (27/28/30 px), tiga tinggi
+baris di rail (19/24/27 px), dan tidak ada jalan memilih tema karena `GELAP` hanya dibaca dari OS.
+Kontras bukan penyebabnya: terendah 5,06 (terang) dan 5,75 (gelap), nol elemen di bawah 4,5.
+
+**Skala.** `view.css` sekarang punya tiga keluarga token: jarak 2/4/8/12/16/24 px, radius
+4/6/10/999 px, tipografi enam langkah 12/13/14/16/20 px dengan lantai 12 px. Sesudah, terukur di
+halaman yang sama dan di halaman repo induk (1.058 elemen terlihat, 17 node, 1280x800): 5 ukuran
+huruf berbeda, radius hanya token, nol jarak pecahan, satu tinggi kontrol (30 px), satu tinggi baris
+pohon (24 px), nol overflow horizontal.
+
+**Palet.** Satu skala netral 12 langkah per skema dan hanya dua langkah teks (pola Radix Colors);
+border skema gelap menjadi lapisan putih transparan (pola shadcn/ui), bukan hex baru. Status dan grup
+mengikuti satu aturan hue — S/L tetap per skema dengan tiga peran (solid / teks / latar bernuansa) —
+dan `render.js` membaca `--sat`/`--terang` dari CSS, jadi rotasi sudut emas untuk grup ke-9 dst tidak
+lagi memakai pasangan S/L sendiri. Langkah terang sempat 38% dan diukur gagal: label aktor jatuh ke
+kontras 3,95 di skema terang. Diturunkan ke 33%; sesudah: terendah 5,03 (terang) / 7,53 (gelap),
+nol elemen di bawah 4,5.
+
+**Saklar tema.** Tombol di bar alat memindahkan kedua skema termasuk warna graf (yang dihitung
+JavaScript, bukan CSS), pilihannya bertahan di `localStorage`, dan dipasang oleh cangkang HTML sebelum
+lukisan pertama supaya tidak berkedip. Tanpa pilihan user, perilakunya persis seperti sebelumnya: ikut
+preferensi OS, termasuk saat OS berubah.
+
+**Penjaga.** Empat tes baru di `src/aset.rs` menghitung ulang isi `view.css`/`render.js` sebagai teks:
+langkah huruf, tangga radius, jarak pecahan, variabel yatim, dan kesamaan kunci tema antara cangkang
+dan skrip. Giginya dibuktikan dengan tiga mutasi sekaligus — `font-size: 0.79rem` di `.bar h1` ->
+merah `ukuran huruf di luar skala: 0.79rem`; definisi `--sp-6` dihapus -> merah `variabel dipakai
+tanpa definisi dan tanpa cadangan: ["sp-6", "sp-6", "sp-6", "sp-6"]`; kunci tema di cangkang diganti
+-> merah `cangkang HTML memakai kunci tema lain`; penjaga halaman basi ikut merah (4 gagal / 77
+lulus). Ketiganya dikembalikan: 81/81 hijau, `clippy --all-targets -D warnings` nol, `check` dan
+`audit` exit 0 di repo pemakai maupun `--root contoh`.
+
+**Geometri graf.** Lebar kartu dibulatkan ke tangga 24px dan kartu sekolom ditepi-kirikan ke kolomnya
+(sebelumnya keduanya berpusat sama tetapi tepi kirinya berbeda sepanjang selisih lebarnya).
+
+**Provenance.** Halaman repo induk `d48446cb…` (214282 byte) -> `5a3345c1…` (222944 byte) dengan
+`data-cap 5b3d521ee425ad20` TIDAK berubah, dan halaman contoh `9fc5f92d…` (126980) -> `190c960f…`
+(135642). Cap tidak berubah karena tidak satu byte manifest pun diubah: yang berubah hanya lapisan
+tampilan yang ter-bake ke halaman.
+
+**Dokumen dipecah.** `how_to_run.md` (230 baris) sekarang memegang bagian operasional: prasyarat dan
+versi toolchain, bentuk biner tiap sistem operasi, enam perintah dengan keluaran aslinya, rute dan
+port `serve`, default empat env, langkah verifikasi (termasuk resep mengukur tampilan di browser),
+tabel gejala-sebab-obat untuk tujuh kegagalan yang benar-benar terjadi, dan isi workflow CI. README
+tinggal kemampuan dan batasnya (301 baris, dari 311 — yang hilang adalah detail cara jalan, bukan
+isi). Dua penjaga dokumen (`sitasi_baris_di_dokumen_masih_hidup` dan
+`tabel_modul_di_dokumen_mencocokkan_angka_sahnya`) ikut membaca berkas baru itu, jadi kutipan
+`nama.rs:NNN` di `how_to_run.md` punya hak yang sama dengan yang di README: giginya dibuktikan dengan
+menggeser `src/main.rs:191` menjadi `:190` -> merah dengan isi baris yang sebenarnya
+(`bukan lagi assert atau definisi fn: /// Yang menjaga aturan ini: ...`), lalu hijau lagi setelah
+dikembalikan.
+
+**Belum di putaran ini:** bug CI ubuntu (run 40280461153, step "Tes") diparkir atas keputusan owner
+karena nama tes yang merah hanya bisa dibaca dari anotasi GitHub dan log job butuh autentikasi;
+screenshot halaman baru untuk README; dataset contoh yang lebih padat; dan `root_uji()` yang memilih
+manifest repo pemakai di mesin penyusun tetapi jatuh ke `contoh/` di runner, sehingga "hijau lokal"
+dan "hijau CI" bukan objek yang sama.
+
 ### Belum dirilis — putaran perburuan bug (2026-10-25)
 
 **Dua belas defek tampilan ditutup** (`render.js` + `view.css`), semuanya diukur di Chrome lewat DOM,

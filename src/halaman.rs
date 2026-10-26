@@ -149,6 +149,18 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
     );
     let _ = writeln!(out, "<title>{judul}</title>");
     let _ = writeln!(out, "<style>{css}</style>");
+    // Tema dipasang sebelum <body> pertama kali dilukis. Tanpa baris ini, pengguna
+    // bersistem gelap melihat sekilas halaman terang lalu berkedip saat render.js jalan,
+    // karena CSS tidak lagi memakai @media (prefers-color-scheme): satu sumber kebenaran
+    // adalah atribut data-tema, yang juga dibaca warna graf di JavaScript.
+    // Kunci 'fv-tema' harus sama dengan KUNCI_TEMA di render.js — dijaga oleh tes
+    // kunci_tema_sama_di_cangkang_dan_di_skrip.
+    let _ = writeln!(
+        out,
+        "<script>(function(){{var k='fv-tema',t=null;try{{t=localStorage.getItem(k)}}catch(e){{}}\
+         if(t!=='gelap'&&t!=='terang'){{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'gelap':'terang'}}\
+         document.documentElement.setAttribute('data-tema',t)}})();</script>"
+    );
     let _ = writeln!(out, "</head>");
     let _ = writeln!(out, "<body>");
     let _ = writeln!(
@@ -200,6 +212,12 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         );
     }
     let _ = writeln!(out, "</select></label>");
+    // Saklar tema: labelnya ditulis render.js dari keadaan GELAP yang sebenarnya, jadi
+    // tombol ini tidak pernah menjanjikan tema yang sama dengan yang sedang tampil.
+    let _ = writeln!(
+        out,
+        "<button type=\"button\" class=\"tombol\" id=\"tombol-tema\" data-aksi=\"tema\"><span>Gelap</span></button>"
+    );
     // Dua aksi alat, keduanya lahir dalam keadaan hidden: halaman dari disk tidak boleh
     // menawarkan tombol yang toh tidak bisa dijalankan browser.
     let _ = writeln!(

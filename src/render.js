@@ -4,6 +4,9 @@
   // Dari file:// browser melarang fetch ke TSV tetangga, jadi jalur ini mati sengaja.
   var dilayani = location.protocol === 'http:' || location.protocol === 'https:';
   var KUNCI_SIMPAN = 'fv-tampilan';
+  // Kunci terpisah dari tampilan: tema harus bertahan lintas sesi dan lintas tab,
+  // sedangkan posisi kamera sengaja hanya hidup di tab yang sedang dipakai.
+  var KUNCI_TEMA = 'fv-tema';
   var MODES = ['produk', 'subfitur', 'implementasi'];
   var svg = document.getElementById('jejaring');
   var panel = document.getElementById('detail');
@@ -68,12 +71,17 @@
 
   var RAMPA = { grup: [], status: [], relasi: [] };
   var GELAP = false;
+  // S/L kurasi dibaca dari token CSS, bukan dipaku di sini. Delapan hue pertama
+  // dikurasi di view.css; grup ke-9 dan seterusnya dirotasi sudut emas memakai
+  // S/L yang sama, jadi kurasi dan hasil generate tidak pernah beda keluarga.
+  var SAT = '45%';
+  var TERANG = '38%';
 
   // Di luar rampa kurasi hue dirotasi sudut emas, jadi grup ke-N tidak pernah memakai
   // warna grup ke-M. S/L ikut skema supaya tetap terasa satu keluarga.
   function hueTambahan(i) {
     var hue = Math.round(i * 137.508) % 360;
-    return GELAP ? 'hsl(' + hue + ', 62%, 66%)' : 'hsl(' + hue + ', 45%, 38%)';
+    return 'hsl(' + hue + ', ' + SAT + ', ' + TERANG + ')';
   }
 
   function paletRampa(r, i, cadangan) {
@@ -84,8 +92,47 @@
 
   function paletGrup(i) { return paletRampa(RAMPA.grup, i, '#8a8a86'); }
 
+  // ---------- tema ----------
+  // Skema dipilih lewat atribut data-tema pada <html>, bukan lewat @media di CSS.
+  // Alasannya: warna graf dihitung di JavaScript dari GELAP, jadi harus ada SATU
+  // sumber kebenaran yang bisa dibaca CSS dan JS sekaligus. Tanpa pilihan user,
+  // hasilnya persis seperti sebelumnya: ikut preferensi OS, termasuk saat OS berubah.
+  function temaOS() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  }
+
+  function bacaTema() {
+    try {
+      var v = localStorage.getItem(KUNCI_TEMA);
+      return v === 'gelap' || v === 'terang' ? v : null;
+    } catch (e) { return null; }
+  }
+
+  function temaAktif() {
+    return bacaTema() || (temaOS() ? 'gelap' : 'terang');
+  }
+
+  function pasangTema(t) {
+    AKAR.setAttribute('data-tema', t);
+    try { localStorage.setItem(KUNCI_TEMA, t); } catch (e) { /* mode privat: tema tetap berlaku sesi ini */ }
+  }
+
+  function labelTema() {
+    var tombol = document.getElementById('tombol-tema');
+    if (!tombol) { return; }
+    var ke = GELAP ? 'terang' : 'gelap';
+    var span = tombol.querySelector('span');
+    if (span) { span.textContent = ke === 'gelap' ? 'Gelap' : 'Terang'; }
+    tombol.setAttribute('title', 'Terapkan tema ' + ke);
+    tombol.setAttribute('aria-label', 'Terapkan tema ' + ke);
+  }
+
   function bacaPalet() {
-    GELAP = !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    GELAP = temaAktif() === 'gelap';
+    var gaya = getComputedStyle(AKAR);
+    SAT = gaya.getPropertyValue('--sat').trim() || '45%';
+    TERANG = gaya.getPropertyValue('--terang').trim() || '38%';
+    labelTema();
     RAMPA.grup = rampa('--grup');
     RAMPA.status = rampa('--status');
     RAMPA.relasi = rampa('--relasi');
@@ -312,7 +359,11 @@
       n.vx = 0;
       n.vy = 0;
       n.h = TINGGI_NODE;
-      n.w = Math.max(LEBAR_MIN, Math.min(LEBAR_MAX, 128 + Math.round(n.label.length * 11.4)));
+      // Lebar kartu dibulatkan ke tangga 24px. Sebelumnya tiap kartu punya lebar
+      // hasil rumus panjang label, jadi dua kartu yang bersebelahan berbeda 9px dan
+      // tepi graf terlihat bergerigi; dengan tangga, kartu seukuran punya tepi yang
+      // sama persis sementara kartu panjang tetap tidak kepotong (pembulatan ke atas).
+      n.w = Math.max(LEBAR_MIN, Math.min(LEBAR_MAX, Math.ceil((128 + n.label.length * 11.4) / 24) * 24));
     });
 
     groupsCache = [];
@@ -656,7 +707,10 @@
         // lajur tidak terlihat sebagai tangga kosong di bagian bawah.
         var mulai = atas + (barisLajur[g] - isi.length) * selaY / 2;
         isi.forEach(function (n, i) {
-          n.x = posisiKolom[r];
+          // Tepi KIRI kartu dalam satu kolom disamakan. posisiKolom adalah titik pusat
+          // kolom, jadi selama ini kartu berpusat sama tetapi tepi kirinya berbeda sepanjang
+          // selisih lebarnya — kolom terlihat tidak lurus.
+          n.x = posisiKolom[r] - lebarKolom[r] / 2 + n.w / 2;
           n.y = mulai + i * selaY;
         });
       }
@@ -2329,7 +2383,20 @@
   }
 
   var skema = window.matchMedia('(prefers-color-scheme: dark)');
-  if (skema.addEventListener) { skema.addEventListener('change', gantiSkema); }
+  if (skema.addEventListener) {
+    skema.addEventListener('change', function () {
+      // Pilihan eksplisit user mengalahkan OS; kalau belum pernah memilih, ikut OS seperti biasa.
+      if (!bacaTema()) { gantiSkema(); }
+    });
+  }
+
+  var tombolTema = document.getElementById('tombol-tema');
+  if (tombolTema) {
+    tombolTema.addEventListener('click', function () {
+      pasangTema(GELAP ? 'terang' : 'gelap');
+      gantiSkema();
+    });
+  }
 
   bacaPalet();
   isiIkon();

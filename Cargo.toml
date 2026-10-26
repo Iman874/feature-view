@@ -1,6 +1,6 @@
 [package]
 name = "feature-view"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "Peta fitur monorepo dari tujuh manifest TSV: validasi, audit klaim terhadap kode, dan satu halaman HTML tanpa dependency."
 readme = "README.md"

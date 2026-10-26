@@ -106,6 +106,126 @@ mod tests {
         assert_eq!(label_js, "disk");
     }
 
+    // ---------------------------------------------------------------------------
+    // Penjaga skala tampilan. Halaman ini dulu tumbuh nilai per elemen: 16 ukuran
+    // huruf berbeda, 5 radius, 9 jarak, dan tiga tinggi kontrol dalam satu baris.
+    // Kerapihan itu tidak bisa dijaga oleh mata — hanya oleh tes yang menghitung
+    // ulang isinya, supaya satu baris `font-size: 0.79rem` baru tidak lolos diam-diam.
+    // ---------------------------------------------------------------------------
+
+    /// Pecah CSS menjadi daftar deklarasi `properti: nilai`. Kurung dikorbankan jadi
+    /// pemisah karena sebagian aturan di berkas ini ditulis satu baris dengan beberapa
+    /// deklarasi sekaligus; memeriksa awal baris akan kehilangan semuanya.
+    fn deklarasi(teks: &str, properti: &str) -> Vec<String> {
+        let awalan = format!("{properti}:");
+        teks.replace(['{', '}'], ";")
+            .split(';')
+            .map(str::trim)
+            .filter_map(|bagian| bagian.strip_prefix(&awalan))
+            .map(|v| v.trim().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn tipografi_view_css_berhenti_pada_enam_langkah_token() {
+        // `100%` (akar html) dan `inherit` (teks yang ikut induknya) bukan langkah
+        // tipografi, jadi keduanya diizinkan sebagai struktur, bukan sebagai ukuran.
+        let nilai = deklarasi(CSS, "font-size");
+        assert!(nilai.len() >= 30, "parser kehilangan deklarasi: hanya {} terbaca", nilai.len());
+        let langkah: std::collections::BTreeSet<&str> = nilai
+            .iter()
+            .map(|v| v.trim_start_matches("var(").trim_end_matches(')'))
+            .filter(|v| v.starts_with("--fs-"))
+            .collect();
+        assert!(langkah.len() <= 6, "lebih dari enam langkah huruf: {langkah:?}");
+        for v in &nilai {
+            assert!(
+                v.starts_with("var(--fs-") || v == "100%" || v == "inherit",
+                "ukuran huruf di luar skala: {v}"
+            );
+        }
+        for i in 1..=6 {
+            assert!(CSS.contains(&format!("--fs-{i}:")), "token --fs-{i} dipakai tapi tidak didefinisikan");
+        }
+    }
+
+    #[test]
+    fn radius_dan_jarak_view_css_hanya_token() {
+        for v in deklarasi(CSS, "border-radius") {
+            assert!(
+                matches!(
+                    v.as_str(),
+                    "var(--r-sm)" | "var(--r-md)" | "var(--r-lg)" | "var(--r-pill)" | "50%" | "0"
+                ),
+                "radius di luar tangga: {v}"
+            );
+        }
+        // Jarak: nilai pecahan (4.8px, 2.56px) adalah tanda ada orang menyetel per elemen.
+        for properti in ["padding", "gap", "margin"] {
+            for v in deklarasi(CSS, properti) {
+                assert!(
+                    !v.chars().any(|c| c == '.') || v.contains("rem") || v.contains("var("),
+                    "jarak {properti} memakai angka pecahan: {v}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn setiap_variabel_di_view_css_punya_definisi() {
+        // Variabel yatim tidak error: ia diam-diam jatuh ke nilai cadangan atau `unset`,
+        // jadi halaman tetap ter-render padahal warnanya sudah bukan dari skala.
+        // Yang boleh tidak terdefinisi di CSS hanyalah variabel yang JS suntikkan sendiri
+        // lewat style.setProperty (penanda grup dan jenis relasi per simpul) — dan itu
+        // hanya sah kalau penulisannya memakai bentuk bercadangan `var(--x, cadangan)`.
+        let dipakai: Vec<(String, bool)> = CSS
+            .match_indices("var(--")
+            .map(|(i, _)| {
+                let sisa = &CSS[i + 6..];
+                let akhir = sisa
+                    .find(|c: char| c == ')' || c == ',' || c.is_whitespace())
+                    .unwrap_or(0);
+                let bercadangan = sisa.as_bytes().get(akhir) == Some(&b',');
+                (sisa[..akhir].to_string(), bercadangan)
+            })
+            .collect();
+        assert!(dipakai.len() > 100, "parser kehilangan sebagian pemakaian variabel: {}", dipakai.len());
+        let didefinisikan: Vec<String> = CSS
+            .match_indices("\n  --")
+            .map(|(i, _)| {
+                CSS[i + 2..]
+                    .split(':')
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .trim_start_matches("--")
+                    .to_string()
+            })
+            .collect();
+        assert!(didefinisikan.len() > 40, "parser kehilangan definisi token: {}", didefinisikan.len());
+        let hilang: Vec<&String> = dipakai
+            .iter()
+            .filter(|(n, cadangan)| !cadangan && !didefinisikan.contains(n))
+            .map(|(n, _)| n)
+            .collect();
+        assert!(hilang.is_empty(), "variabel dipakai tanpa definisi dan tanpa cadangan: {hilang:?}");
+    }
+
+    #[test]
+    fn kunci_tema_sama_di_cangkang_dan_di_skrip() {
+        // Cangkang HTML memasang data-tema sebelum lukisan pertama; skrip membaca kunci
+        // yang sama nanti. Kalau salah satu berganti, pilihan user hilang tanpa pesan.
+        let skrip = aset("render.js", JS).0;
+        let cangkang = std::fs::read_to_string(dir_aset().join("halaman.rs")).expect("halaman.rs terbaca");
+        assert!(skrip.contains("var KUNCI_TEMA = 'fv-tema'"), "render.js kehilangan kunci tema");
+        assert!(cangkang.contains("var k='fv-tema'"), "cangkang HTML memakai kunci tema lain");
+        // CSS tidak boleh lagi memilih skema sendiri: satu sumber kebenaran adalah atribut.
+        assert!(
+            !CSS.contains("prefers-color-scheme"),
+            "view.css masih memilih tema lewat @media, jadi saklar tema bisa berbeda dari yang tampil"
+        );
+    }
+
     #[test]
     fn bentuk_terdaftar_membaca_kamus_ikon_dari_sumber_js() {
         let contoh = "  var IKON = {\n    cari: '<circle/>',\n    'lipat': '<path d=\"M1\"/>',\n  };\n  var LAIN = { x: 1 };";

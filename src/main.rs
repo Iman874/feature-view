@@ -427,7 +427,7 @@ mod tests {
         // Yang dibaca selalu termasuk README/CHANGELOG milik alat (ada di repo mandiri), plus dokumen
         // provenance repo induk kalau memang ada.
         let mut dok: Vec<(String, String)> = Vec::new();
-        for nama in ["README.md", "CHANGELOG.md"] {
+        for nama in ["README.md", "CHANGELOG.md", "how_to_run.md"] {
             let path = dir_aset().parent().expect("crate punya induk").join(nama);
             if let Ok(isi) = fs::read_to_string(&path) {
                 dok.push((nama.to_string(), isi));
@@ -658,7 +658,7 @@ mod tests {
         let sumber_crate = dir_aset();
         let akar_crate = sumber_crate.parent().expect("crate punya induk");
         let mut dokumen: Vec<(String, String)> = Vec::new();
-        for nama in ["README.md", "CHANGELOG.md"] {
+        for nama in ["README.md", "CHANGELOG.md", "how_to_run.md"] {
             if let Ok(isi) = fs::read_to_string(akar_crate.join(nama)) {
                 dokumen.push((nama.to_string(), isi));
             }

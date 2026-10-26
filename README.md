@@ -1,8 +1,11 @@
 # feature-view
 
+**Versi 0.2.0.** Rust tanpa satu pun dependency, keluarannya satu berkas HTML yang dibuka tanpa
+server dan tanpa aset eksternal.
+
 Peta fitur monorepo yang dibangun dari tujuh manifest TSV: satu perintah memvalidasi, satu perintah
-lagi membuktikan klaim barisnya terhadap kode yang sebenarnya, dan hasilnya satu berkas HTML yang
-bisa dibuka tanpa server, tanpa framework, dan tanpa satu pun dependency Rust.
+lagi membuktikan klaim barisnya terhadap kode yang sebenarnya, dan hasilnya satu halaman yang bisa
+dibuka tanpa server, tanpa framework, dan tanpa satu pun dependency Rust.
 
 Alat ini tidak mengenal repo tempat ia dipakai: tidak ada satu pun nama service, aplikasi, produk,
 status, atau jenis relasi yang hidup di kodenya — semuanya datang dari manifest. Pindah repo = salin
@@ -24,11 +27,13 @@ cargo run -- audit         # cocokkan klaim tiap baris terhadap isi kode
 cargo run -- serve         # baca manifest ulang pada tiap permintaan, tanpa generate
 ```
 
-Jalankan dari folder yang memuat `docs/view/` — untuk repo mandiri, itu folder alat ini. Kalau Anda
-menjalankannya dari tempat lain, tambahkan `--root <path-ke-root-repo>`; default-nya direktori kerja,
-jadi tidak ada asumsi bentuk repo. Yang harus dihindari: di repo besar yang menaruh alat ini di
-subfolder sementara `docs/view/` tetap di root repo, menjalankan dari folder alat akan gagal membaca
-`docs/view/config.tsv` (keluar `GAGAL membaca ...`, exit 2). Bentuk yang benar di susunan itu:
+Sisanya pindah ke **[how_to_run.md](how_to_run.md)**: prasyarat dan versi toolchain, bentuk biner tiap
+sistem operasi, rute dan port `serve`, batas yang bisa dinaikkan lewat env, langkah verifikasi, dan
+tujuh gejala error yang sudah punya sebab serta obat. Yang harus diingat dari halaman ini hanya satu:
+alat ini mencari `docs/view/` relatif ke **direktori kerja**, jadi jalankan dari root repo atau sebut
+`--root <path-ke-root-repo>`. Di repo besar yang menaruh alat di subfolder sementara `docs/view/`
+tetap di root repo, menjalankan dari folder alat gagal membaca `docs/view/config.tsv` (exit 2).
+Bentuk yang benar di susunan itu:
 
 ```
 cargo run --manifest-path tools/feature-view/Cargo.toml -- check --root .
@@ -36,13 +41,7 @@ cargo run --manifest-path tools/feature-view/Cargo.toml -- check --root .
 
 Ingin melihat bentuk jadi sebelum menyentuh repo Anda? Dataset [`contoh/`](contoh/README.md) adalah
 repo imajiner lengkap (2 service, 2 aplikasi, 2 produk, 7 sub-fitur, kode palsunya) yang sudah
-dibuktikan `generate` + `check` + `audit` lulus:
-
-```
-cargo run -- generate --root contoh
-cargo run -- check    --root contoh
-cargo run -- audit    --root contoh
-```
+dibuktikan `generate` + `check` + `audit` lulus — jalankan ketiganya dengan `--root contoh`.
 
 ## 2. Perintah dan kode keluar
 
@@ -141,17 +140,12 @@ sebagai batas bawah, bukan angka pasti.
 
 ## 6. Batas yang bisa dinaikkan tanpa build ulang
 
-Nilai tidak sah atau `0` selalu jatuh kembali ke default; tidak ada setelan yang bisa mematikan
-pemeriksaan.
-
-| Env | Mengatur |
-|---|---|
-| `PETA_PORT` | port bawaan `serve`/`stop` |
-| `PETA_BATAS_BACA_BUKTI` | ukuran maksimum satu berkas bukti (byte) |
-| `PETA_INDEKS_BATAS_BERKAS` | batas jumlah berkas saat menyapu folder service |
-| `PETA_INDEKS_BATAS_BYTE` | batas total byte saat menyapu folder service |
-
-`-h` mencetak daftar ini beserta kode keluar; `-V` mencetak versi.
+Empat env — `PETA_PORT`, `PETA_BATAS_BACA_BUKTI`, `PETA_INDEKS_BATAS_BERKAS`, `PETA_INDEKS_BATAS_BYTE`
+— beserta default angkanya ada di [how_to_run.md](how_to_run.md) bagian 5. Yang penting untuk bagian
+"apa yang alat ini boleh disetel": nilai tidak sah atau `0` selalu jatuh kembali ke default, dan
+**tidak ada satu pun setelan yang bisa mematikan pemeriksaan**. Kalau sebuah env dipakai, laporan
+`audit` menyebut namanya, jadi angka tidak dibaca sebagai fakta mentah. `-h` mencetak daftar ini
+beserta kode keluar; `-V` mencetak versi.
 
 ## 7. Penjaga anti-hardcode
 
@@ -196,10 +190,10 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 | `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status | 143 | 0 |
 | `src/manifest.rs` | baca +urai tujuh TSV jadi `Model`, cap isi manifest | 712 | 8 |
 | `src/aturan.rs` | aturan validasi yang membuat `check` gagal | 574 | 9 |
-| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 824 | 8 |
+| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 842 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
-| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk | 126 | 3 |
+| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 246 | 7 |
 | `src/setelan.rs` | batas dan default yang bisa di-override lewat env | 72 | 3 |
 | `src/template.rs` | kerangka `init` + tes dataset contoh | 351 | 9 |
 | `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 228 | 0 |
@@ -235,14 +229,17 @@ suite yang menyalakan — bukan ingatan saya.
 
 ## 9. Tes
 
-```
-cargo test
-cargo clippy --all-targets
-```
+`cargo test` sekarang **81 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
+ditulis permanen (tes `init` memakai folder temporer). `cargo clippy --all-targets -- -D warnings`
+harus nol: penjaga format kode ini adalah suite-nya sendiri. Perintah verifikasi lengkap — termasuk
+gerbang md5 untuk refactor murni dan resep mengukur tampilan di browser — ada di
+[how_to_run.md](how_to_run.md) bagian 6.
 
-77 tes, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini ditulis permanen (tes `init`
-memakai folder temporer). `clippy --all-targets` harus nol warning: penjaga format kode ini adalah
-suite-nya sendiri.
+Empat tes di `src/aset.rs` tidak menguji kode Rust sama sekali: mereka membaca ulang `view.css` dan
+`render.js` sebagai teks lalu menghitung angkanya — langkah huruf (maksimal enam, semuanya
+`var(--fs-`), tangga radius, jarak pecahan, variabel yang dipakai tanpa definisi, dan kunci tema
+yang harus sama antara cangkang HTML dan skrip. Alasannya persis sama dengan penjaga dokumen:
+kerapihan yang hanya dibuktikan mata akan melonggar oleh satu baris yang tidak dilihat siapa pun.
 
 **Gerbang untuk refactor murni:** sebelum dan sesudah, jalankan `generate` pada dataset Anda lalu
 bandingkan `md5 index.html` dan `data-cap`. Cap isi manifest tidak berubah kalau data tidak berubah;
@@ -270,7 +267,17 @@ barunya, jangan diam-diam.
 - Angka-angka presentasi (48 nama bentuk ikon, rampa posisi `--grup-1..12`, `--status-1..4`,
   `--relasi-1..6`) satu-satunya yang boleh berupa hardcode: itu keputusan gaya, bukan data repo.
   JS membaca rampa sampai token habis lalu melanjutkan dengan hue sudut emas, jadi jumlah service
-  tidak dibatasi daftar tetap.
+  tidak dibatasi daftar tetap. Hue kurasi itu memakai S/L yang sama dengan rotasi sudut emas karena
+  `render.js` membaca `--sat`/`--terang` dari CSS: menambah atau menggeser satu langkah warna cukup
+  di satu tempat, tidak di dua daftar yang harus diingat sama.
+- Skema terang/gelap dipilih lewat atribut `data-tema` pada `<html>`, bukan `@media
+  (prefers-color-scheme)`. Alasannya bukan selera: warna graf dihitung JavaScript dari keadaan yang
+  sama, dan dua sumber kebenaran menghasilkan chrome terang dengan node gelap. Cangkang HTML
+  memasang atribut itu sebelum lukisan pertama memakai kunci `fv-tema` yang harus sama dengan
+  `KUNCI_TEMA` di `render.js` — kalau salah satu berganti, tes
+  `kunci_tema_sama_di_cangkang_dan_di_skrip` merah.
+- Skala tampilan (jarak, radius, tipografi) tidak boleh dilewati nilai telanjang. Penjaganya di
+  `src/aset.rs`; lihat bagian 9.
 
 ## 11. Ide yang dipinjam dari repo serupa
 
