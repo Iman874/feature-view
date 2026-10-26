@@ -1,0 +1,10 @@
+# features.tsv — id|service|fitur|status|ringkasan|cara_kerja|titik_masuk|bukti|dokumen|catatan
+# Satu-satunya berkas yang memegang status. Nilai status dan jenis relasi diambil dari config.tsv,
+# jadi `jalan`/`setengah`/`reda`/`rencana` di bawah ini tidak dikenal alat dari kodenya.
+inti-sapa-pagi|svc-inti|Sapa pagi|jalan|RuteSapa memasang GET /sapa ke SapaPengguna.|SapaPengguna membaca AksiSapa lalu menyusun ucapannya.|svc-inti/src/sapa.go|svc-inti/src/sapa.go|svc-inti/README.md|
+inti-daftar-nama|svc-inti|Daftar nama|jalan|DaftarPengguna menelusuri Baris pada SenaraiPengguna.|DaftarPengguna mengumpulkan Nama dari setiap Baris yang ada.|svc-inti/src/pengguna.go|svc-inti/src/pengguna.go|svc-inti/README.md|
+inti-kirim-ulang|svc-inti|Kirim ulang|setengah|KirimUlang memakai AntreanKirim.|KirimUlang mengulang selama belum lewat batas tiga.|svc-inti/src/kirim.go|svc-inti/src/kirim.go|svc-inti/README.md|Antrean kirim belum ditulis sehingga satu klaim baris ini sengaja tidak terbukti.
+inti-laporan-harian|svc-inti|Laporan harian|rencana|Belum dibangun; rujukannya docs/rencana.md.|Akan menghitung salam tiap hari.|docs/rencana.md|docs/rencana.md|svc-inti/README.md|
+muka-tampil-salam|svc-muka|Tampil salam|jalan|TampilSalam menulis salam ke KotakSalam.|TampilSalam menerima props lalu merender KotakSalam.|svc-muka/src/halaman_sapa.tsx|svc-muka/src/halaman_sapa.tsx|svc-muka/README.md|
+muka-saring-nama|svc-muka|Saring nama|jalan|SaringPengguna memotong daftar sampai BatasTampilan.|SaringPengguna memotong lalu menyerahkan hasilnya ke TampilSalam.|svc-muka/src/saring.tsx|svc-muka/src/saring.tsx,svc-muka/src/halaman_sapa.tsx|svc-muka/README.md|
+muka-tema-gelap|svc-muka|Tema gelap|reda|TemaGelap menyediakan warna tetapi belum dipasang.|TemaGelap memegang warna latar dan teks.|svc-muka/src/tema.tsx|svc-muka/src/tema.tsx|svc-muka/README.md|Dimatikan atas keputusan pemilik halaman sehingga warnanya tidak pernah dipakai.

@@ -1,0 +1,15 @@
+# config.tsv — kunci|nilai. Ini DATA, bukan konfigurasi alat: ganti dengan kosakata repo Anda.
+#
+# Berkas ini sengaja memakai kosakata yang BERBEDA dari repo mana pun ("jalan", "reda", "kirim").
+# Kalau alat ini masih memuat nama status dari kodenya, dataset contoh ini pasti ditolak `check` —
+# jadi isi folder `contoh/` adalah bukti bahwa halaman sepenuhnya digerakkan data.
+merek|Repo Contoh
+judul|Peta Fitur Repo Contoh
+bahasa|id
+status|jalan,setengah,reda,rencana
+status_peran_utama|jalan
+status_peran_separuh|setengah
+status_peran_mati|reda
+jenis_relasi|kirim,minta,kelola,kunci,menuju,catat
+aktor_ikon|Pengguna:orang,Petugas:penggeser,Sistem:pancar
+minimum_fitur_per_service|2

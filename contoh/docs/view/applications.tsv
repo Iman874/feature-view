@@ -1,0 +1,3 @@
+# applications.tsv — id|service|nama|jenis|folder|deskripsi|dokumen|ikon
+srv-inti|svc-inti|Server Inti|binary|svc-inti/src|Menyalakan jalur salam dan daftar nama.|svc-inti/README.md|mesin
+halaman-muka|svc-muka|Halaman Muka|peramban|svc-muka/src|Tempat salam dibaca dan daftar disaring.|svc-muka/README.md|monitor

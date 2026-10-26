@@ -1,0 +1,8 @@
+# edges.tsv — dari|ke|jenis|label
+# `jenis` wajib anggota daftar jenis_relasi di config.tsv. Setiap sub-fitur butuh minimal satu relasi.
+inti-sapa-pagi|muka-tampil-salam|kirim|Salam dikirim ke kartu
+inti-daftar-nama|muka-saring-nama|kirim|Daftar mentah hasil saringan
+muka-saring-nama|muka-tampil-salam|menuju|Hasil saring ditampilkan
+inti-kirim-ulang|inti-sapa-pagi|minta|Ulangi salam yang gagal
+inti-laporan-harian|inti-daftar-nama|catat|Hitung salam per hari
+muka-tema-gelap|muka-tampil-salam|kelola|Atur warna kartu

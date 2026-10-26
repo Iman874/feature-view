@@ -1,0 +1,4 @@
+# produk.tsv — id|nama|aktor|hasil|ringkasan|dokumen|catatan
+# Produk = aktor + hasil, bukan service atau aplikasi. Status produk dihitung dari sub-fiturnya.
+sapa-pagi|Sapa pagi|Pengguna|Salam terbaca|Pengguna membuka halaman lalu salam muncul.|README.md|
+daftar-nama|Daftar nama|Petugas|Daftar rapi|Petugas melihat daftar nama yang sudah disaring.|README.md|

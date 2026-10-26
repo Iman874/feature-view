@@ -1,0 +1,9 @@
+# pemetaan.tsv — subfitur|produk|aplikasi
+# Tiap sub-fitur muncul tepat satu kali; aplikasinya wajib satu service dengan sub-fiturnya.
+inti-sapa-pagi|sapa-pagi|srv-inti
+inti-daftar-nama|daftar-nama|srv-inti
+inti-kirim-ulang|daftar-nama|srv-inti
+inti-laporan-harian|daftar-nama|srv-inti
+muka-tampil-salam|sapa-pagi|halaman-muka
+muka-saring-nama|daftar-nama|halaman-muka
+muka-tema-gelap|sapa-pagi|halaman-muka

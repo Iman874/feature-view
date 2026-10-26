@@ -1,0 +1,77 @@
+# Gerbang alat ini: nol warning, tes hijau, dan dataset contoh benar-benar bisa di-generate,
+# di-check, dan diaudit. Semua langkah memakai `cargo` saja — tidak ada aksi pihak ketiga, jadi
+# workflow ini tetap jalan di repo mandiri yang belum punya apa-apa selain folder ini.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pasang Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup component add clippy --toolchain stable
+        shell: bash
+
+      - name: Clippy tanpa warning
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tes
+        run: cargo test
+
+      # Angka yang ditulis README tentang suite-nya sendiri tidak dijaga tes apa pun di dalam
+      # proses, karena menghitung tes dari dalam tes akan memanggil cargo dari dalam cargo.
+      # Jadi gerbangnya di sini: kalau jumlah tes berubah dan README tidak ikut, build gagal.
+      - name: Jumlah tes di README sama dengan suite
+        shell: bash
+        run: |
+          keluaran=$(cargo test 2>&1)
+          nyata=$(printf '%s\n' "$keluaran" | grep -oE '[0-9]+ passed' | head -1 | awk '{print $1}')
+          ditulis=$(grep -oE '[0-9]+ tes' README.md | head -1 | awk '{print $1}')
+          echo "suite=$nyata readme=$ditulis"
+          test -n "$nyata"
+          test "$nyata" = "$ditulis"
+
+      # Dataset contoh adalah fixtur sekaligus bukti bahwa alat ini jalan di repo asing.
+      # Urutannya sengaja generate -> check -> audit: `check` tanpa `generate` akan merah
+      # karena index.html contoh memang tidak ikut di-commit.
+      - name: Generate dataset contoh
+        run: cargo run --quiet -- generate --root contoh
+
+      - name: Check dataset contoh
+        run: cargo run --quiet -- check --root contoh
+
+      - name: Audit dataset contoh
+        run: cargo run --quiet -- audit --root contoh
+
+      # Perintah lain yang harus tetap waras tanpa manifest apa pun: `init` mencetak kerangka,
+      # idempoten, dan `check` harus MENOLAK kerangka kosong (bukan lolos diam-diam).
+      - name: init di repo kosong tidak menimpa
+        run: |
+          cargo run --quiet -- init > out1.txt
+          cargo run --quiet -- init > out2.txt
+          grep -q "DIBUAT 7" out1.txt
+          grep -q "LEWATI" out2.txt
+          if cargo run --quiet -- check > out3.txt 2>&1; then
+            echo "check seharusnya menolak kerangka kosong, tapi keluar 0"
+            exit 1
+          fi
+          test -s out3.txt
+          rm -rf docs out1.txt out2.txt out3.txt
+        shell: bash

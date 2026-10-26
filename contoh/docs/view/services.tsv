@@ -1,0 +1,4 @@
+# services.tsv — key|nama|stack|deskripsi|folder|dokumen|ikon
+# Dataset contoh: kosakata dan nama di sini sengaja berbeda dari repo mana pun.
+svc-inti|Service Inti|Go|Memegang jalur salam dan daftar nama.|svc-inti|svc-inti/README.md|gerbang
+svc-muka|Service Muka|TypeScript|Halaman tempat pengguna membaca salam.|svc-muka|svc-muka/README.md|orbit

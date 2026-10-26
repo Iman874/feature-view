@@ -1,0 +1,23 @@
+# Build hasil cargo: dibangkitkan ulang, spesifik mesin, dan isinya puluhan ribu berkas.
+/target
+
+# Sampah editor dan sistem operasi.
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# `Cargo.lock` SENGAJA ikut di-commit, jadi tidak diabaikan di atas. Ini biner, bukan library:
+# lockfile adalah bagian dari hasil yang teruji, supaya CI dan orang yang memasang alat ini
+# membangun dengan versi yang sama persis dengan yang dipakai saat tes dijalankan.
+
+# `contoh/docs/view/index.html` juga SENGAJA ikut di-commit. Ia memang hasil generate, tapi dia
+# yang membuat janji "clone baru langsung lulus" bisa dibuktikan: tanpanya `check --root contoh`
+# keluar dengan exit 2 dan penjaga `halaman_contoh_di_repo_computed_dari_render_js_yang_sekarang`
+# gagal karena berkas yang seharusnya tercommit tidak ada. Baris `/contoh/docs/view/index.html`
+# pernah ada di berkas ini dan itulah yang membuat halaman contoh ter-commit basi satu putaran
+# tanpa ada yang tahu — jangan dikembalikan.

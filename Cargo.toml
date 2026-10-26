@@ -1,0 +1,14 @@
+[package]
+name = "feature-view"
+version = "0.1.0"
+edition = "2021"
+description = "Peta fitur monorepo dari tujuh manifest TSV: validasi, audit klaim terhadap kode, dan satu halaman HTML tanpa dependency."
+readme = "README.md"
+keywords = ["monorepo", "documentation", "architecture", "visualization", "zero-dependency"]
+categories = ["command-line-utilities", "development-tools"]
+license = "MIT"
+# `rust-version` masih sengaja belum diisi: angka minimum belum diuji pada toolchain lama,
+# jadi menuliskannya akan menjadi klaim yang belum terbukti.
+# Terukur dibangun dan dites pada rustc 1.99.1 (2026-10-13) dengan edition 2021.
+
+[dependencies]
