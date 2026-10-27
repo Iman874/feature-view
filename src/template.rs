@@ -69,6 +69,18 @@ pub(crate) const TEMPLATE_EDGES: &str = "\
 # contoh: svc-satu-hello|svc-lain|panggil|Minta data pengguna
 ";
 
+/// Berkas kedelapan dan satu-satunya yang OPSIONAL: repo yang belum memakai papan pekerjaan
+/// tidak punya berkas ini, dan hasil `check`-nya tidak berubah karena ketiadaannya.
+pub(crate) const TEMPLATE_TUGAS: &str = "\
+# tugas.tsv — id|subfitur|judul|status|progres|pemegang|berkas|catatan
+# Hanya `catatan` yang boleh kosong. `subfitur` wajib anggota features.tsv dan `berkas` wajib
+# task nyata di repo ini: papan ini tidak menerima pekerjaan tanpa berkas.
+# `status` wajib anggota `status_tugas` di config.tsv; `progres` bilangan 0..=100, dan status
+# terakhir kosakata menuntut 100. Kalau berkas task menulis `Status:`, kata pertama sesudahnya
+# harus sama dengan status yang diumumkan di sini — itu yang menjaga angka tidak bisa dikarang.
+# contoh: svc-satu-hello-t1|svc-satu-hello|Siapkan rute sapa|selesai|100|agen|plan/hello.md|
+";
+
 /// (path relatif root, isi template) untuk tiap manifest.
 pub(crate) fn template() -> Vec<(&'static str, &'static str)> {
     vec![
@@ -79,6 +91,7 @@ pub(crate) fn template() -> Vec<(&'static str, &'static str)> {
         (MAPPING_FILE, TEMPLATE_PEMETAAN),
         (FEATURES_FILE, TEMPLATE_FEATURES),
         (EDGES_FILE, TEMPLATE_EDGES),
+        (TASKS_FILE, TEMPLATE_TUGAS),
     ]
 }
 
@@ -143,7 +156,7 @@ mod tests {
     }
 
     #[test]
-    fn init_menulis_tujuh_manifest_dan_tidak_menimpa_hasil_kerja_orang() {
+    fn init_menulis_delapan_manifest_dan_tidak_menimpa_hasil_kerja_orang() {
         let akar = akar_uji();
         let _ = fs::remove_dir_all(&akar);
         fs::create_dir_all(&akar).expect("folder uji");
@@ -156,8 +169,8 @@ mod tests {
         let pesan = init(&akar).expect("init jalan");
         assert_eq!(
             template().len(),
-            7,
-            "kontrak template = tujuh manifest"
+            8,
+            "kontrak template = delapan manifest (satu di antaranya opsional dipakai)"
         );
         for (relatif, _) in template() {
             let path = akar.join(relatif);

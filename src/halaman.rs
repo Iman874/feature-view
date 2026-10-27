@@ -81,7 +81,7 @@ pub(crate) fn halaman_belum_generate(keluaran: &Path, merek: &str, root: &Path) 
         "<p>Server membaca halaman dari disk, dan file hasilnya tidak ada: <code>{}</code></p>",
         esc(&keluaran.display().to_string())
     );
-    let _ = writeln!(out, "<p>Sumber datanya tidak tersentuh: ketujuh manifest TSV di <code>docs/view/</code> tetap utuh. Yang dihapus tadi hanya hasil generate.</p>");
+    let _ = writeln!(out, "<p>Sumber datanya tidak tersentuh: manifest TSV di <code>docs/view/</code> tetap utuh. Yang dihapus tadi hanya hasil generate.</p>");
     let _ = writeln!(out, "<p><button type=\"button\" id=\"gen\">Generate ulang</button></p>");
     let _ = writeln!(out, "<p id=\"status\"></p>");
     let _ = writeln!(
@@ -259,6 +259,9 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
     let _ = writeln!(out, "<div><h2><i data-ikon=\"relasi\"></i><span>Relasi</span></h2><div id=\"legenda-edge\" class=\"legenda-baris\"></div></div>");
     let _ = writeln!(out, "<div><h2><i data-ikon=\"status\"></i><span>Status</span></h2><div id=\"legenda-status\" class=\"legenda-baris\"></div></div>");
     let _ = writeln!(out, "</section>");
+    // Papan pekerjaan: disembunyikan sampai JS punya sesuatu untuk ditampilkan. Judulnya datang
+    // dari config, jadi panel ini tidak pernah membawa kata milik satu repo pun di kode alat.
+    let _ = writeln!(out, "<section id=\"papan\" class=\"papan\" hidden aria-live=\"polite\"><h2 id=\"papan-judul\"></h2><div id=\"papan-isi\" class=\"papan-isi\"></div></section>");
     let _ = writeln!(out, "</aside>");
 
     let _ = writeln!(out, "<section class=\"peta\" id=\"peta\" aria-label=\"Jejaring fitur\">");
@@ -517,11 +520,40 @@ pub(crate) fn render_json(model: &Model) -> String {
     }
     let _ = write!(
         out,
-        "}},\"merek\":{},\"judul\":{}",
+        "}},\"merek\":{},\"judul\":{},\"papanJudul\":{}",
         json_str(&model.config.merek),
-        json_str(&model.config.judul)
+        json_str(&model.config.judul),
+        json_str(&model.config.judul_papan)
     );
-    out.push('}');
+    // Papan pekerjaan: kosakata status tugas dan daftarnya. Repo yang belum memakai `tugas.tsv`
+    // mengirim daftar kosong, dan halaman tidak merender panelnya sama sekali.
+    out.push_str(",\"statusTugas\":[");
+    for (i, status) in model.config.status_tugas.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        out.push_str(&json_str(status));
+    }
+    out.push_str("],\"tugas\":[");
+    for (i, t) in model.tugas.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let _ = write!(
+            out,
+            "{{\"id\":{},\"subfitur\":{},\"judul\":{},\"status\":{},\"progres\":{},\"pemegang\":{},\"berkas\":{},\"catatan\":{},\"baris\":{}}}",
+            json_str(&t.id),
+            json_str(&t.subfitur),
+            json_str(&t.judul),
+            json_str(&t.status),
+            t.progres,
+            json_str(&t.pemegang),
+            json_str(&t.berkas),
+            json_str(&t.notes),
+            t.line
+        );
+    }
+    out.push_str("]}");
     out
 }
 
@@ -701,6 +733,8 @@ mod tests {
                 ("separuh", "berjalan".to_string()),
                 ("mati", "berjalan".to_string()),
             ],
+            status_tugas: vec![],
+            judul_papan: String::new(),
         };
         let x = fitur("x", "app", "selesai", "tools/feature-view/Cargo.toml");
         assert_eq!(hitung_status(&[&x], &asing), "selesai");
@@ -732,6 +766,8 @@ mod tests {
                 ("separuh", "jalan".to_string()),
                 ("mati", "bersih".to_string()),
             ],
+            status_tugas: vec![],
+            judul_papan: String::new(),
         };
         assert_eq!(hitung_status(&[], &asing), "bersih");
     }

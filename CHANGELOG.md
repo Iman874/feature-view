@@ -9,6 +9,27 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ## [Changelog]
 
+### Belum dirilis — papan pekerjaan dan lajur yang menahan isinya (2026-10-27)
+
+**Dua perubahan, keduanya terukur di halaman dataset pemakai.**
+
+1. **Lajur grup mengikuti isinya.** Di mode Sub-fitur lajur service digambar pada `x: 26` tetap,
+   sementara `pisahkanKlaster()` boleh mendorong isi ke kiri nilai itu dan sentralisasi hanya jalan
+   kalau muatannya `<= W - 60`. Terukur pada 33 sub-fitur: kartu ter-kiri duduk **-16,1 px** di luar
+   border lajurnya sendiri (lajur lain `+235,6` dan `+8,7`). Sekarang tepi kiri lajur dihitung dari
+   kartu paling kiri, dan ketiga lajur menjadi `+261,6`, `+9,9`, `+34,7`.
+2. **`tugas.tsv`, manifest kedelapan dan opsional.** Satu baris = satu berkas task nyata:
+   `id|subfitur|judul|status|progres|pemegang|berkas|catatan`. `check` menolak tugas tanpa sub-fitur
+   induk, tanpa berkas, dengan progres di luar 0..=100, dengan status di luar kosakata `status_tugas`
+   baru di `config.tsv`, dan dengan status yang berbeda dari kata pertama pada baris `Status:`
+   berkasnya. Halaman menampilkan panel "Pekerjaan berjalan" (`judul_papan`) dengan batang beranimasi
+   dan persen pada kartu yang punya pekerjaan berjalan; animasi mati di `prefers-reduced-motion`.
+
+**Kosakata tetap data.** Tidak ada nama status tugas yang masuk ke kode: `status_tugas` dan
+`judul_papan` dibaca dari `config.tsv` dan keduanya opsional, jadi repo yang belum memakai papan
+berperilaku persis seperti sebelum perubahan ini (terukur: `check --root contoh` tetap exit 0 tanpa
+`tugas.tsv`). Angka: `cargo test` 81 -> **87 lulus**, clippy nol, `node --check` lulus.
+
 ### 0.2.0 — palet, skala, dan saklar tema (2026-10-26)
 
 **Masalahnya diukur lebih dulu**, di Chrome pada halaman contoh 1440x900, 282 elemen terlihat, angka

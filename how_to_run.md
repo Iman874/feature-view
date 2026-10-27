@@ -126,7 +126,7 @@ Rutenya:
 | Rute | Tingkah |
 |---|---|
 | `GET /` dan `GET /index.html` | sajikan `docs/view/index.html` **dari disk**; kalau belum ada, halaman khusus "belum di-generate" dengan tombol yang memanggil `POST /regenerate` |
-| `GET /stamp` | baca ketujuh manifest **pada tiap permintaan**, balas `{"cap":...,"valid":bool,"galat":[]}` — selalu 200 supaya manifest rusak dilaporkan, bukan dilempar |
+| `GET /stamp` | baca ulang manifest **pada tiap permintaan**, balas `{"cap":...,"valid":bool,"galat":[]}` — selalu 200 supaya manifest rusak dilaporkan, bukan dilempar |
 | `POST /regenerate` / `POST /hapus` | tulis / hapus berkas hasil; hanya path konstanta internal, tidak pernah path dari permintaan |
 | `GET /favicon.ico` | 204 (menjawab 404 menaruh error palsu di console) |
 
@@ -159,7 +159,7 @@ token ini" menjadi **batas bawah**, dan laporan mengatakannya.
 ## 6. Verifikasi sendiri
 
 ```
-cargo test                                              # 81 tes, tanpa jaringan
+cargo test                                              # 87 tes, tanpa jaringan
 cargo clippy --all-targets -- -D warnings               # harus nol
 node --check src/render.js                              # hanya saat menyentuh skrip halaman
 cargo run -- generate --root contoh && cargo run -- check --root contoh && cargo run -- audit --root contoh
@@ -171,7 +171,7 @@ clone baru punya sesuatu untuk dibandingkan.
 
 **Gerbang refactor murni.** `generate` bersifat deterministik: dua kali jalan menghasilkan md5 yang
 sama. Sebelum dan sesudah memindahkan kode, catat `md5sum docs/view/index.html` dan `data-cap` di
-chip halaman. Cap dihitung dari byte mentah ketujuh manifest, jadi cap yang bergerak berarti datanya
+chip halaman. Cap dihitung dari byte mentah manifest, jadi cap yang bergerak berarti datanya
 yang berubah. Kalau Anda hanya memindah kode tapi md5 bergerak, refactor itu tidak murni.
 
 **Verifikasi tampilan tidak bisa dilakukan dari tes.** Suite membaca `view.css`/`render.js` sebagai
@@ -214,7 +214,7 @@ pencocok jumlah tes di README dengan suite, `generate`/`check`/`audit` pada `con
 | Yang mau diubah | Mulai dari |
 |---|---|
 | teks bantuan `-h`, daftar perintah, petunjuk cara jalan | `petunjuk` (`src/main.rs:191`) — satu-satunya tempat teks ini ditulis, jadi pesan dan halaman tidak bisa berbeda |
-| root yang dipakai tes saat alat berdiri sendiri | `root_uji` (`src/uji.rs:139`) — menerima kandidat hanya kalau manifestnya benar-benar terurai, lalu jatuh ke `contoh/` |
+| root yang dipakai tes saat alat berdiri sendiri | `root_uji` (`src/uji.rs:142`) — menerima kandidat hanya kalau manifestnya benar-benar terurai, lalu jatuh ke `contoh/` |
 | aturan yang membuat `check` gagal | `src/aturan.rs` saja, plus tesnya di situ |
 | kolom manifest baru | `src/data.rs` (bentuk) + parser di `src/manifest.rs` + validasi di `src/aturan.rs` |
 | tampilan | `src/view.css` (skala dan palet) dan `src/render.js` (bentuk graf), lalu `cargo build` + `generate` |

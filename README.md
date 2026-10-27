@@ -3,7 +3,7 @@
 **Versi 0.2.0.** Rust tanpa satu pun dependency, keluarannya satu berkas HTML yang dibuka tanpa
 server dan tanpa aset eksternal.
 
-Peta fitur monorepo yang dibangun dari tujuh manifest TSV: satu perintah memvalidasi, satu perintah
+Peta fitur monorepo yang dibangun dari delapan manifest TSV: satu perintah memvalidasi, satu perintah
 lagi membuktikan klaim barisnya terhadap kode yang sebenarnya, dan hasilnya satu halaman yang bisa
 dibuka tanpa server, tanpa framework, dan tanpa satu pun dependency Rust.
 
@@ -47,7 +47,7 @@ dibuktikan `generate` + `check` + `audit` lulus — jalankan ketiganya dengan `-
 
 | Perintah | Kerja | Keluar 0 | Keluar 1 | Keluar 2 |
 |---|---|---|---|---|
-| `init` | tulis kerangka tujuh manifest | selalu, termasuk saat tidak ada yang ditulis (`LEWATI`) | - | gagal I/O |
+| `init` | tulis kerangka delapan manifest | selalu, termasuk saat tidak ada yang ditulis (`LEWATI`) | - | gagal I/O |
 | `generate` | validasi manifest lalu tulis `docs/view/index.html` | halaman tertulis | manifest ditolak validasi | manifest tidak terbaca / argumen salah |
 | `check` | validasi + bandingkan HTML dengan yang seharusnya | HTML sinkron | HTML tertinggal atau manifest ditolak | manifest tidak terbaca |
 | `audit` | baca berkas bukti, cocokkan token klaim | tidak ada baris peran utama yang merah | ada baris peran utama `merah-hampa` / `merah-sempit` | manifest tidak terbaca |
@@ -74,6 +74,7 @@ bawah ini (kelebihan kolom = ditolak dengan pesan yang menyebut nomor baris).
 | `features.tsv` | `id\|service\|fitur\|status\|ringkasan\|cara_kerja\|titik_masuk\|bukti\|dokumen\|catatan` |
 | `pemetaan.tsv` | `subfitur\|produk\|aplikasi` |
 | `edges.tsv` | `dari\|ke\|jenis\|label` |
+| `tugas.tsv` | `id\|subfitur\|judul\|status\|progres\|pemegang\|berkas\|catatan` — **opsional**: tidak ada berkas = papan pekerjaan tidak dipakai, halaman tidak berubah |
 
 `config.tsv` adalah tempat identitas halaman berada. Kunci yang dikenali parser:
 
@@ -187,16 +188,16 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 | Berkas | Tanggung jawab | Baris | Tes |
 |---|---|---|---|
 | `src/main.rs` | titik masuk: argumen, pemilihan perintah, bantuan, petunjuk, penjaga struktur | 739 | 9 |
-| `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status | 143 | 0 |
-| `src/manifest.rs` | baca +urai tujuh TSV jadi `Model`, cap isi manifest | 712 | 8 |
-| `src/aturan.rs` | aturan validasi yang membuat `check` gagal | 574 | 9 |
-| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 842 | 8 |
+| `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status, papan pekerjaan | 166 | 0 |
+| `src/manifest.rs` | baca +urai delapan TSV jadi `Model`, cap isi manifest | 834 | 10 |
+| `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 788 | 13 |
+| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 878 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
 | `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 246 | 7 |
 | `src/setelan.rs` | batas dan default yang bisa di-override lewat env | 72 | 3 |
-| `src/template.rs` | kerangka `init` + tes dataset contoh | 351 | 9 |
-| `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 228 | 0 |
+| `src/template.rs` | kerangka `init` + tes dataset contoh | 364 | 9 |
+| `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 231 | 0 |
 | `src/render.js` | bentuk grafik + interaksi halaman (48 bentuk ikon) | - | - |
 | `src/view.css` | gaya halaman | - | - |
 
@@ -217,9 +218,9 @@ suite yang menyalakan — bukan ingatan saya.
 
 | Fungsi | Tempat | Yang perlu diketahui |
 |---|---|---|
-| `produksi_dari` | `src/uji.rs:183` | memotong kode produksi pada `#[cfg(test)]` yang diikuti `mod tests`, bukan yang pertama |
-| `tanpa_kerangka` | `src/uji.rs:159` | membuang isi `const TEMPLATE_*` dari sapuan merek/kosakata |
-| `root_uji` | `src/uji.rs:139` | hanya menerima manifest yang benar-benar terurai, lalu jatuh ke `contoh/` |
+| `produksi_dari` | `src/uji.rs:186` | memotong kode produksi pada `#[cfg(test)]` yang diikuti `mod tests`, bukan yang pertama |
+| `tanpa_kerangka` | `src/uji.rs:162` | membuang isi `const TEMPLATE_*` dari sapuan merek/kosakata |
+| `root_uji` | `src/uji.rs:142` | hanya menerima manifest yang benar-benar terurai, lalu jatuh ke `contoh/` |
 | `petunjuk` | `src/main.rs:191` | satu-satunya tempat teks cara menjalankan alat ditulis |
 | `klaim_baris` | `src/audit.rs:177` | menggabungkan tiga kolom klaim beserta asal kolomnya |
 | `sokong_lintas` | `src/audit.rs:327` | mengenali token yang hidup di service lain tanpa membuat exit 1 |
@@ -229,7 +230,7 @@ suite yang menyalakan — bukan ingatan saya.
 
 ## 9. Tes
 
-`cargo test` sekarang **81 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
+`cargo test` sekarang **87 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
 ditulis permanen (tes `init` memakai folder temporer). `cargo clippy --all-targets -- -D warnings`
 harus nol: penjaga format kode ini adalah suite-nya sendiri. Perintah verifikasi lengkap — termasuk
 gerbang md5 untuk refactor murni dan resep mengukur tampilan di browser — ada di

@@ -27,7 +27,7 @@ pub(crate) fn sajikan(root: &Path, port: u16) -> Result<ExitCode, String> {
     println!("OK: serve di http://{alamat}/");
     println!("    root     : {}", root.display());
     println!("    halaman  : dibaca dari docs/view/index.html seperti adanya di disk");
-    println!("    data     : /stamp membaca ulang ketujuh TSV tiap permintaan");
+    println!("    data     : /stamp membaca ulang manifest tiap permintaan");
     println!("    tulis    : hanya POST /regenerate dan POST /hapus, keduanya ke docs/view/index.html saja");
     println!("    berhenti : Ctrl+C, atau jalankan: feature-view stop");
     for panggilan in dengar.incoming() {

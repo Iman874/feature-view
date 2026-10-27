@@ -25,6 +25,8 @@ pub(crate) fn config_uji() -> Config {
             ("separuh", "sebagian".to_string()),
             ("mati", "dimatikan".to_string()),
         ],
+        status_tugas: vec![],
+        judul_papan: String::new(),
     }
 }
 
@@ -85,6 +87,7 @@ pub(crate) fn model_uji(features: Vec<Feature>, edges: Vec<Edge>) -> Model {
         mappings,
         features,
         edges,
+        tugas: vec![],
     }
 }
 

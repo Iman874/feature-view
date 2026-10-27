@@ -14,6 +14,12 @@ pub(crate) struct Config {
     pub(crate) aktor_ikon: Vec<(String, String)>,
     pub(crate) minimum_fitur: usize,
     pub(crate) peran: [(&'static str, String); 3],
+    /// Kosakata status untuk papan pekerjaan. Berkas `tugas.tsv` opsional, jadi kunci ini juga
+    /// opsional: daftar kosong berarti repo ini belum memakai papan, BUKAN berarti semua status boleh.
+    pub(crate) status_tugas: Vec<String>,
+    /// Judul panel papan pekerjaan. Ikut opsional karena kata yang tampil di halaman harus jadi
+    /// data, bukan teks di kode: tanpa kunci ini panelnya tidak punya judul untuk dipasang.
+    pub(crate) judul_papan: String,
 }
 
 impl Config {
@@ -118,6 +124,22 @@ pub(crate) struct Edge {
     pub(crate) line: usize,
 }
 
+/// Satu baris `tugas.tsv`: pekerjaan yang sedang berjalan di repo, terikat pada satu sub-fitur
+/// dan satu berkas task NYATA. `progres` dan `berkas` ada bersama-sama supaya angka di layar
+/// selalu punya berkas yang bisa dibuka orang.
+#[derive(Clone, Debug)]
+pub(crate) struct Tugas {
+    pub(crate) id: String,
+    pub(crate) subfitur: String,
+    pub(crate) judul: String,
+    pub(crate) status: String,
+    pub(crate) progres: u8,
+    pub(crate) pemegang: String,
+    pub(crate) berkas: String,
+    pub(crate) notes: String,
+    pub(crate) line: usize,
+}
+
 #[derive(Clone, Debug)]
 pub(crate) struct AggEdge {
     pub(crate) from: String,
@@ -134,6 +156,7 @@ pub(crate) struct Model {
     pub(crate) mappings: Vec<Mapping>,
     pub(crate) features: Vec<Feature>,
     pub(crate) edges: Vec<Edge>,
+    pub(crate) tugas: Vec<Tugas>,
 }
 
 #[derive(Debug)]

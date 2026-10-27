@@ -3,6 +3,7 @@
 
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs;
 use std::path::Component;
 use std::path::Path;
 use crate::data::*;
@@ -373,6 +374,8 @@ pub(crate) fn validate(model: &Model, root: &Path) -> Vec<String> {
         }
     }
 
+    galat.extend(aturan_tugas(model, root));
+
     for service in &model.services {
         let jumlah = model
             .features
@@ -388,6 +391,116 @@ pub(crate) fn validate(model: &Model, root: &Path) -> Vec<String> {
     }
 
     galat
+}
+
+/// Aturan papan pekerjaan. `tugas.tsv` opsional, jadi repo yang belum memakainya tidak mendapat
+/// galat apa pun dari sini.
+///
+/// Yang dijaga adalah KEJUJURAN angka, bukan bentuknya: sebuah baris hanya boleh ada kalau punya
+/// rumah (sub-fitur yang nyata di `features.tsv`), punya bukti (berkas task nyata di repo ini),
+/// dan tidak membantah berkasnya sendiri.
+fn aturan_tugas(model: &Model, root: &Path) -> Vec<String> {
+    let mut galat = Vec::new();
+    if model.tugas.is_empty() {
+        return galat;
+    }
+    if model.config.status_tugas.is_empty() {
+        galat.push(format!(
+            "{TASKS_FILE}: papan pekerjaan dipakai, tapi kosakata `status_tugas` tidak dideklarasikan di config.tsv — nama status tidak boleh hidup di kode alat"
+        ));
+    }
+    let selesai = model
+        .config
+        .status_tugas
+        .last()
+        .cloned()
+        .unwrap_or_default();
+    let mut id_terpakai: HashSet<&str> = HashSet::new();
+
+    for t in &model.tugas {
+        if !id_terpakai.insert(t.id.as_str()) {
+            galat.push(format!("{}:{}: id tugas duplikat: {}", TASKS_FILE, t.line, t.id));
+        }
+        if !model.features.iter().any(|f| f.id == t.subfitur) {
+            galat.push(format!(
+                "{}:{}: tugas `{}` menunjuk sub-fitur yang tidak ada di features.tsv: {}",
+                TASKS_FILE, t.line, t.id, t.subfitur
+            ));
+        }
+        if !model.config.status_tugas.iter().any(|s| s == &t.status) {
+            galat.push(format!(
+                "{}:{}: status tugas `{}` bukan anggota `status_tugas` ({})",
+                TASKS_FILE,
+                t.line,
+                t.status,
+                model.config.status_tugas.join(", ")
+            ));
+        }
+        if !path_relatif_aman(&t.berkas) || !root.join(&t.berkas).is_file() {
+            galat.push(format!(
+                "{}:{}: berkas tugas tidak ditemukan: {} — tulis task-nya di repo ini lebih dulu, papan ini tidak menerima kerja tanpa berkas",
+                TASKS_FILE, t.line, t.berkas
+            ));
+            continue;
+        }
+        if t.progres == 100 && !selesai.is_empty() && t.status != selesai {
+            galat.push(format!(
+                "{}:{}: progres 100 tapi status `{}` bukan status terakhir (`{}`)",
+                TASKS_FILE, t.line, t.status, selesai
+            ));
+        }
+        if !selesai.is_empty() && t.status == selesai && t.progres != 100 {
+            galat.push(format!(
+                "{}:{}: status `{}` wajib progres 100, dapat {}",
+                TASKS_FILE, t.line, t.status, t.progres
+            ));
+        }
+        // Anti-bohong: berkas task yang menulis Status tidak boleh dibantah manifestnya.
+        if let Ok(isi) = fs::read_to_string(root.join(&t.berkas)) {
+            if let Some(kata) = kata_status_pertama(&isi) {
+                if kata != t.status.to_ascii_lowercase() {
+                    galat.push(format!(
+                        "{}:{}: tugas `{}` mengklaim `{}` tetapi berkas {} menulis `Status: {}`",
+                        TASKS_FILE, t.line, t.id, t.status, t.berkas, kata
+                    ));
+                }
+            }
+        }
+    }
+    galat
+}
+
+/// Kata pertama setelah label `Status:` pada baris status sebuah berkas task, sudah dikasarkeun.
+/// Hanya baris yang DIAWALI label itu yang dihitung — `Status:` yang muncul di tengah kalimat
+/// (misalnya di dalam tanda backtick pada langkah kerja) bukan status pekerjaan.
+///
+/// Bentuk barisnya di repo nyata tidak seragam: `> **Status**: selesai`, `Status: SELESAI — ...`.
+/// Yang dibandingkan adalah KATA PERTAMA, bukan substring: `belum dikerjakan` harus tetap berbeda
+/// dari `dikerjakan`, karena di situlah celah paling mungkin membuat papan terlihat sibuk.
+fn kata_status_pertama(isi: &str) -> Option<String> {
+    for baris in isi.lines() {
+        let bersih = baris.trim();
+        if bersih.is_empty() || bersih.starts_with('#') {
+            continue;
+        }
+        let kutip = bersih.trim_start_matches(['>', '#', '*', '`', '-', ' ']);
+        let rendah = kutip.to_ascii_lowercase();
+        let tanpa_bintang = rendah.trim_start_matches('*').trim_start_matches('`');
+        if !tanpa_bintang.starts_with("status") {
+            continue;
+        }
+        let sesudah = &tanpa_bintang["status".len()..];
+        let Some(titik) = sesudah.find(':') else { continue };
+        let kata: String = sesudah[titik + 1..]
+            .chars()
+            .skip_while(|c| !c.is_alphanumeric())
+            .take_while(|c| c.is_alphanumeric())
+            .collect();
+        if !kata.is_empty() {
+            return Some(kata);
+        }
+    }
+    None
 }
 
 pub(crate) fn id_aman(id: &str) -> bool {
@@ -569,6 +682,107 @@ mod tests {
     fn beda_baris_pertama_melaporkan_baris_yang_berbeda() {
         assert_eq!(beda_baris_pertama("a\nb\nc", "a\nx\nc"), 2);
         assert_eq!(beda_baris_pertama("a\nb", "a\nb\nc"), 3);
+    }
+
+    fn tugas_uji(id: &str, rumah: &str, status: &str, progres: u8, berkas: &str) -> Tugas {
+        Tugas {
+            id: id.to_string(),
+            subfitur: rumah.to_string(),
+            judul: "Pekerjaan uji".to_string(),
+            status: status.to_string(),
+            progres,
+            pemegang: "agen".to_string(),
+            berkas: berkas.to_string(),
+            notes: String::new(),
+            line: 2,
+        }
+    }
+
+    fn dua_fitur() -> Vec<Feature> {
+        vec![
+            fitur("a", "app", "aktif", "tools/feature-view/Cargo.toml"),
+            fitur("b", "app", "aktif", "tools/feature-view/Cargo.toml"),
+        ]
+    }
+
+    #[test]
+    fn papan_menolak_tugas_tanpa_rumah_dan_berkas_hilang() {
+        let mut model = model_uji(dua_fitur(), vec![edge("a", "b")]);
+        model.config.status_tugas = vec!["jalan".to_string(), "selesai".to_string()];
+        model
+            .tugas
+            .push(tugas_uji("t1", "hantu", "jalan", 40, "tidak/ada.md"));
+        let galat = validate(&model, Path::new("."));
+        assert!(
+            galat.iter().any(|g| g.contains("sub-fitur yang tidak ada di features.tsv: hantu")),
+            "kerja tanpa rumah harus ditolak: {galat:?}"
+        );
+        assert!(
+            galat.iter().any(|g| g.contains("berkas tugas tidak ditemukan")),
+            "kerja tanpa berkas task harus ditolak: {galat:?}"
+        );
+    }
+
+    #[test]
+    fn papan_menolak_kosakata_status_yang_belum_dideklarasikan() {
+        let mut model = model_uji(dua_fitur(), vec![edge("a", "b")]);
+        // `status_tugas` sengaja kosong: nama status adalah data, dan papan tidak boleh
+        // memakai nama yang tidak pernah diumumkan config.
+        model
+            .tugas
+            .push(tugas_uji("t1", "a", "jalan", 40, "tools/feature-view/Cargo.toml"));
+        let galat = validate(&model, Path::new("."));
+        assert!(
+            galat
+                .iter()
+                .any(|g| g.contains("kosakata `status_tugas` tidak dideklarasikan")),
+            "papan tanpa kosakata harus ditolak: {galat:?}"
+        );
+    }
+
+    #[test]
+    fn papan_mengikat_seratus_persen_ke_status_terakhir() {
+        let mut model = model_uji(dua_fitur(), vec![edge("a", "b")]);
+        model.config.status_tugas = vec!["jalan".to_string(), "selesai".to_string()];
+        model
+            .tugas
+            .push(tugas_uji("t1", "a", "jalan", 100, "Cargo.toml"));
+        model
+            .tugas
+            .push(tugas_uji("t2", "b", "selesai", 60, "Cargo.toml"));
+        let galat = validate(&model, Path::new("."));
+        assert!(
+            galat.iter().any(|g| g.contains("bukan status terakhir")),
+            "progres 100 dengan status berjalan harus ditolak: {galat:?}"
+        );
+        assert!(
+            galat.iter().any(|g| g.contains("wajib progres 100, dapat 60")),
+            "status terakhir dengan progres di bawah seratus harus ditolak: {galat:?}"
+        );
+    }
+
+    #[test]
+    fn kata_status_membedakan_belum_dari_dikerjakan() {
+        // Bentuk nyata di repo pemakai: blockquote tebal, polos, dan kalimat yang menyebut
+        // `Status:` di tengahnya. Yang terakhir bukan baris status dan tidak boleh terbaca.
+        assert_eq!(
+            kata_status_pertama("> **Status**: selesai\n"),
+            Some("selesai".to_string())
+        );
+        assert_eq!(
+            kata_status_pertama("Status: DIKERJAKAN — parser selesai, dokumen belum\n"),
+            Some("dikerjakan".to_string())
+        );
+        assert_eq!(
+            kata_status_pertama("Status: BELUM DIKERJAKAN\n"),
+            Some("belum".to_string()),
+            "`belum dikerjakan` tidak boleh terbaca sebagai `dikerjakan`"
+        );
+        assert_eq!(
+            kata_status_pertama("5. Anti-bohong: berkas task menulis `Status:` harus sama\n"),
+            None,
+            "label di tengah kalimat bukan baris status"
+        );
     }
 
 }

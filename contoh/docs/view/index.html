@@ -760,6 +760,49 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
 }
+/* --- papan pekerjaan (tugas.tsv) ---
+   Panel ini hanya diisi kalau repo memakainya, jadi tidak ada satu pun gaya yang berlaku saat
+   `tugas.tsv` tidak ada. Status TIDAK dipilih lewat nama di sini: nama status adalah data dari
+   config.tsv, dan kode tampilan tidak boleh mengenalnya. Yang beranimasi adalah setiap baris
+   yang memang terpasang di papan — papan ini hanya menampung pekerjaan yang belum selesai. */
+.papan { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--garis); }
+.papan h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  color: var(--teks-lembut);
+}
+.papan-baris { padding: var(--sp-3) 0; border-top: 1px solid var(--panel-lembut); }
+.papan-baris:first-of-type { border-top: 0; padding-top: 0; }
+.papan-kepala { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.papan-nama { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-2); color: var(--teks); }
+.papan-angka { font-size: var(--fs-2); font-weight: 700; color: var(--aksen-tegas); font-variant-numeric: tabular-nums; }
+.papan-rel { margin-top: var(--sp-1); font-size: var(--fs-1); color: var(--teks-lembut); }
+.papan-jalur { position: relative; margin-top: var(--sp-2); height: 6px; overflow: hidden; border-radius: var(--r-pill); background: var(--panel-lembut); }
+.papan-batang { position: relative; height: 100%; border-radius: var(--r-pill); background: var(--aksen); }
+.papan-batang::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--panel), transparent);
+  animation: papan-berjalan 2.4s linear infinite;
+}
+@keyframes papan-berjalan {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+.papan-rumah { margin-top: var(--sp-1); font-size: var(--fs-1); color: var(--teks-lembut); font-variant-numeric: tabular-nums; }
+.papan-hitung { margin: var(--sp-3) 0 0; font-size: var(--fs-1); color: var(--teks-lembut); font-variant-numeric: tabular-nums; }
+#jejaring .node-progres { fill: var(--aksen-tegas); font-size: var(--fs-1); font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .papan-batang::after { display: none; animation: none; }
+}
 </style>
 <script>(function(){var k='fv-tema',t=null;try{t=localStorage.getItem(k)}catch(e){}if(t!=='gelap'&&t!=='terang'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'gelap':'terang'}document.documentElement.setAttribute('data-tema',t)})();</script>
 </head>
@@ -789,7 +832,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 <button type="button" class="tombol ikon-saja" id="hapus-hasil" data-aksi="hapus-hasil" aria-label="Hapus hasil generate index.html" title="Hapus hasil" hidden><i data-ikon="buang"></i></button>
 <button type="button" class="tombol ikon-saja" data-aksi="muat-data" aria-label="Muat ulang data dari manifest" title="Muat data"><i data-ikon="folder"></i></button>
 <button type="button" class="tombol ikon-saja" data-aksi="reset" aria-label="Setel ulang penyaring, pilihan, dan zoom" title="Setel ulang"><i data-ikon="perbarui"></i></button>
-<button type="button" class="kap" id="kap" data-aksi="muat-ubah" data-cap="610ab401d5a59804" hidden aria-live="polite"></button>
+<button type="button" class="kap" id="kap" data-aksi="muat-ubah" data-cap="8ac7fa1e086175e1" hidden aria-live="polite"></button>
 </div>
 </header>
 <div class="badan">
@@ -802,6 +845,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 <div><h2><i data-ikon="relasi"></i><span>Relasi</span></h2><div id="legenda-edge" class="legenda-baris"></div></div>
 <div><h2><i data-ikon="status"></i><span>Status</span></h2><div id="legenda-status" class="legenda-baris"></div></div>
 </section>
+<section id="papan" class="papan" hidden aria-live="polite"><h2 id="papan-judul"></h2><div id="papan-isi" class="papan-isi"></div></section>
 </aside>
 <section class="peta" id="peta" aria-label="Jejaring fitur">
 <div class="alat-peta" role="group" aria-label="Kontrol peta">
@@ -819,7 +863,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 </aside>
 </div>
 </div>
-<script id="data" type="application/json">{"services":[{"key":"svc-inti","name":"Service Inti","stack":"Go","description":"Memegang jalur salam dan daftar nama.","folder":"svc-inti","docs":["svc-inti/README.md"],"ikon":"gerbang"},{"key":"svc-muka","name":"Service Muka","stack":"TypeScript","description":"Halaman tempat pengguna membaca salam.","folder":"svc-muka","docs":["svc-muka/README.md"],"ikon":"orbit"}],"products":[{"id":"sapa-pagi","name":"Sapa pagi","actor":"Pengguna","outcome":"Salam terbaca","summary":"Pengguna membuka halaman lalu salam muncul.","docs":["README.md"],"notes":"","status":"setengah","counts":[["jalan",2],["setengah",0],["reda",1],["rencana",0]],"subfeatures":["inti-sapa-pagi","muka-tampil-salam","muka-tema-gelap"],"apps":["srv-inti","halaman-muka"]},{"id":"daftar-nama","name":"Daftar nama","actor":"Petugas","outcome":"Daftar rapi","summary":"Petugas melihat daftar nama yang sudah disaring.","docs":["README.md"],"notes":"","status":"setengah","counts":[["jalan",2],["setengah",1],["reda",0],["rencana",1]],"subfeatures":["inti-daftar-nama","inti-kirim-ulang","inti-laporan-harian","muka-saring-nama"],"apps":["srv-inti","halaman-muka"]}],"apps":[{"id":"srv-inti","service":"svc-inti","name":"Server Inti","kind":"binary","folder":"svc-inti/src","description":"Menyalakan jalur salam dan daftar nama.","docs":["svc-inti/README.md"],"ikon":"mesin","status":"setengah","counts":[["jalan",2],["setengah",1],["reda",0],["rencana",1]],"products":["sapa-pagi","daftar-nama"],"subfeatures":["inti-sapa-pagi","inti-daftar-nama","inti-kirim-ulang","inti-laporan-harian"],"operations":["svc-inti/src/sapa.go","svc-inti/src/pengguna.go","svc-inti/src/kirim.go","docs/rencana.md"]},{"id":"halaman-muka","service":"svc-muka","name":"Halaman Muka","kind":"peramban","folder":"svc-muka/src","description":"Tempat salam dibaca dan daftar disaring.","docs":["svc-muka/README.md"],"ikon":"monitor","status":"setengah","counts":[["jalan",2],["setengah",0],["reda",1],["rencana",0]],"products":["sapa-pagi","daftar-nama"],"subfeatures":["muka-tampil-salam","muka-saring-nama","muka-tema-gelap"],"operations":["svc-muka/src/halaman_sapa.tsx","svc-muka/src/saring.tsx","svc-muka/src/tema.tsx"]}],"features":[{"id":"inti-sapa-pagi","product":"sapa-pagi","app":"srv-inti","service":"svc-inti","name":"Sapa pagi","status":"jalan","summary":"RuteSapa memasang GET /sapa ke SapaPengguna.","how":"SapaPengguna membaca AksiSapa lalu menyusun ucapannya.","entry":"svc-inti/src/sapa.go","operations":["svc-inti/src/sapa.go"],"evidence":["svc-inti/src/sapa.go"],"docs":["svc-inti/README.md"],"notes":"","degree":2},{"id":"inti-daftar-nama","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Daftar nama","status":"jalan","summary":"DaftarPengguna menelusuri Baris pada SenaraiPengguna.","how":"DaftarPengguna mengumpulkan Nama dari setiap Baris yang ada.","entry":"svc-inti/src/pengguna.go","operations":["svc-inti/src/pengguna.go"],"evidence":["svc-inti/src/pengguna.go"],"docs":["svc-inti/README.md"],"notes":"","degree":2},{"id":"inti-kirim-ulang","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Kirim ulang","status":"setengah","summary":"KirimUlang memakai AntreanKirim.","how":"KirimUlang mengulang selama belum lewat batas tiga.","entry":"svc-inti/src/kirim.go","operations":["svc-inti/src/kirim.go"],"evidence":["svc-inti/src/kirim.go"],"docs":["svc-inti/README.md"],"notes":"Antrean kirim belum ditulis sehingga satu klaim baris ini sengaja tidak terbukti.","degree":1},{"id":"inti-laporan-harian","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Laporan harian","status":"rencana","summary":"Belum dibangun; rujukannya docs/rencana.md.","how":"Akan menghitung salam tiap hari.","entry":"docs/rencana.md","operations":["docs/rencana.md"],"evidence":["docs/rencana.md"],"docs":["svc-inti/README.md"],"notes":"","degree":1},{"id":"muka-tampil-salam","product":"sapa-pagi","app":"halaman-muka","service":"svc-muka","name":"Tampil salam","status":"jalan","summary":"TampilSalam menulis salam ke KotakSalam.","how":"TampilSalam menerima props lalu merender KotakSalam.","entry":"svc-muka/src/halaman_sapa.tsx","operations":["svc-muka/src/halaman_sapa.tsx"],"evidence":["svc-muka/src/halaman_sapa.tsx"],"docs":["svc-muka/README.md"],"notes":"","degree":3},{"id":"muka-saring-nama","product":"daftar-nama","app":"halaman-muka","service":"svc-muka","name":"Saring nama","status":"jalan","summary":"SaringPengguna memotong daftar sampai BatasTampilan.","how":"SaringPengguna memotong lalu menyerahkan hasilnya ke TampilSalam.","entry":"svc-muka/src/saring.tsx","operations":["svc-muka/src/saring.tsx"],"evidence":["svc-muka/src/saring.tsx","svc-muka/src/halaman_sapa.tsx"],"docs":["svc-muka/README.md"],"notes":"","degree":2},{"id":"muka-tema-gelap","product":"sapa-pagi","app":"halaman-muka","service":"svc-muka","name":"Tema gelap","status":"reda","summary":"TemaGelap menyediakan warna tetapi belum dipasang.","how":"TemaGelap memegang warna latar dan teks.","entry":"svc-muka/src/tema.tsx","operations":["svc-muka/src/tema.tsx"],"evidence":["svc-muka/src/tema.tsx"],"docs":["svc-muka/README.md"],"notes":"Dimatikan atas keputusan pemilik halaman sehingga warnanya tidak pernah dipakai.","degree":1}],"edges":[{"from":"inti-sapa-pagi","to":"muka-tampil-salam","kind":"kirim","label":"Salam dikirim ke kartu"},{"from":"inti-daftar-nama","to":"muka-saring-nama","kind":"kirim","label":"Daftar mentah hasil saringan"},{"from":"muka-saring-nama","to":"muka-tampil-salam","kind":"menuju","label":"Hasil saring ditampilkan"},{"from":"inti-kirim-ulang","to":"inti-sapa-pagi","kind":"minta","label":"Ulangi salam yang gagal"},{"from":"inti-laporan-harian","to":"inti-daftar-nama","kind":"catat","label":"Hitung salam per hari"},{"from":"muka-tema-gelap","to":"muka-tampil-salam","kind":"kelola","label":"Atur warna kartu"}],"productEdges":[{"from":"daftar-nama","to":"sapa-pagi","kind":"menuju","label":"Hasil saring ditampilkan"},{"from":"daftar-nama","to":"sapa-pagi","kind":"minta","label":"Ulangi salam yang gagal"}],"appEdges":[{"from":"srv-inti","to":"halaman-muka","kind":"kirim","label":"2 relasi"}],"statuses":["jalan","setengah","reda","rencana"],"kinds":["kirim","minta","kelola","kunci","menuju","catat"],"peran":{"utama":"jalan","separuh":"setengah","mati":"reda"},"aktorIkon":{"Pengguna":"orang","Petugas":"penggeser","Sistem":"pancar"},"merek":"Repo Contoh","judul":"Peta Fitur Repo Contoh"}</script>
+<script id="data" type="application/json">{"services":[{"key":"svc-inti","name":"Service Inti","stack":"Go","description":"Memegang jalur salam dan daftar nama.","folder":"svc-inti","docs":["svc-inti/README.md"],"ikon":"gerbang"},{"key":"svc-muka","name":"Service Muka","stack":"TypeScript","description":"Halaman tempat pengguna membaca salam.","folder":"svc-muka","docs":["svc-muka/README.md"],"ikon":"orbit"}],"products":[{"id":"sapa-pagi","name":"Sapa pagi","actor":"Pengguna","outcome":"Salam terbaca","summary":"Pengguna membuka halaman lalu salam muncul.","docs":["README.md"],"notes":"","status":"setengah","counts":[["jalan",2],["setengah",0],["reda",1],["rencana",0]],"subfeatures":["inti-sapa-pagi","muka-tampil-salam","muka-tema-gelap"],"apps":["srv-inti","halaman-muka"]},{"id":"daftar-nama","name":"Daftar nama","actor":"Petugas","outcome":"Daftar rapi","summary":"Petugas melihat daftar nama yang sudah disaring.","docs":["README.md"],"notes":"","status":"setengah","counts":[["jalan",2],["setengah",1],["reda",0],["rencana",1]],"subfeatures":["inti-daftar-nama","inti-kirim-ulang","inti-laporan-harian","muka-saring-nama"],"apps":["srv-inti","halaman-muka"]}],"apps":[{"id":"srv-inti","service":"svc-inti","name":"Server Inti","kind":"binary","folder":"svc-inti/src","description":"Menyalakan jalur salam dan daftar nama.","docs":["svc-inti/README.md"],"ikon":"mesin","status":"setengah","counts":[["jalan",2],["setengah",1],["reda",0],["rencana",1]],"products":["sapa-pagi","daftar-nama"],"subfeatures":["inti-sapa-pagi","inti-daftar-nama","inti-kirim-ulang","inti-laporan-harian"],"operations":["svc-inti/src/sapa.go","svc-inti/src/pengguna.go","svc-inti/src/kirim.go","docs/rencana.md"]},{"id":"halaman-muka","service":"svc-muka","name":"Halaman Muka","kind":"peramban","folder":"svc-muka/src","description":"Tempat salam dibaca dan daftar disaring.","docs":["svc-muka/README.md"],"ikon":"monitor","status":"setengah","counts":[["jalan",2],["setengah",0],["reda",1],["rencana",0]],"products":["sapa-pagi","daftar-nama"],"subfeatures":["muka-tampil-salam","muka-saring-nama","muka-tema-gelap"],"operations":["svc-muka/src/halaman_sapa.tsx","svc-muka/src/saring.tsx","svc-muka/src/tema.tsx"]}],"features":[{"id":"inti-sapa-pagi","product":"sapa-pagi","app":"srv-inti","service":"svc-inti","name":"Sapa pagi","status":"jalan","summary":"RuteSapa memasang GET /sapa ke SapaPengguna.","how":"SapaPengguna membaca AksiSapa lalu menyusun ucapannya.","entry":"svc-inti/src/sapa.go","operations":["svc-inti/src/sapa.go"],"evidence":["svc-inti/src/sapa.go"],"docs":["svc-inti/README.md"],"notes":"","degree":2},{"id":"inti-daftar-nama","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Daftar nama","status":"jalan","summary":"DaftarPengguna menelusuri Baris pada SenaraiPengguna.","how":"DaftarPengguna mengumpulkan Nama dari setiap Baris yang ada.","entry":"svc-inti/src/pengguna.go","operations":["svc-inti/src/pengguna.go"],"evidence":["svc-inti/src/pengguna.go"],"docs":["svc-inti/README.md"],"notes":"","degree":2},{"id":"inti-kirim-ulang","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Kirim ulang","status":"setengah","summary":"KirimUlang memakai AntreanKirim.","how":"KirimUlang mengulang selama belum lewat batas tiga.","entry":"svc-inti/src/kirim.go","operations":["svc-inti/src/kirim.go"],"evidence":["svc-inti/src/kirim.go"],"docs":["svc-inti/README.md"],"notes":"Antrean kirim belum ditulis sehingga satu klaim baris ini sengaja tidak terbukti.","degree":1},{"id":"inti-laporan-harian","product":"daftar-nama","app":"srv-inti","service":"svc-inti","name":"Laporan harian","status":"rencana","summary":"Belum dibangun; rujukannya docs/rencana.md.","how":"Akan menghitung salam tiap hari.","entry":"docs/rencana.md","operations":["docs/rencana.md"],"evidence":["docs/rencana.md"],"docs":["svc-inti/README.md"],"notes":"","degree":1},{"id":"muka-tampil-salam","product":"sapa-pagi","app":"halaman-muka","service":"svc-muka","name":"Tampil salam","status":"jalan","summary":"TampilSalam menulis salam ke KotakSalam.","how":"TampilSalam menerima props lalu merender KotakSalam.","entry":"svc-muka/src/halaman_sapa.tsx","operations":["svc-muka/src/halaman_sapa.tsx"],"evidence":["svc-muka/src/halaman_sapa.tsx"],"docs":["svc-muka/README.md"],"notes":"","degree":3},{"id":"muka-saring-nama","product":"daftar-nama","app":"halaman-muka","service":"svc-muka","name":"Saring nama","status":"jalan","summary":"SaringPengguna memotong daftar sampai BatasTampilan.","how":"SaringPengguna memotong lalu menyerahkan hasilnya ke TampilSalam.","entry":"svc-muka/src/saring.tsx","operations":["svc-muka/src/saring.tsx"],"evidence":["svc-muka/src/saring.tsx","svc-muka/src/halaman_sapa.tsx"],"docs":["svc-muka/README.md"],"notes":"","degree":2},{"id":"muka-tema-gelap","product":"sapa-pagi","app":"halaman-muka","service":"svc-muka","name":"Tema gelap","status":"reda","summary":"TemaGelap menyediakan warna tetapi belum dipasang.","how":"TemaGelap memegang warna latar dan teks.","entry":"svc-muka/src/tema.tsx","operations":["svc-muka/src/tema.tsx"],"evidence":["svc-muka/src/tema.tsx"],"docs":["svc-muka/README.md"],"notes":"Dimatikan atas keputusan pemilik halaman sehingga warnanya tidak pernah dipakai.","degree":1}],"edges":[{"from":"inti-sapa-pagi","to":"muka-tampil-salam","kind":"kirim","label":"Salam dikirim ke kartu"},{"from":"inti-daftar-nama","to":"muka-saring-nama","kind":"kirim","label":"Daftar mentah hasil saringan"},{"from":"muka-saring-nama","to":"muka-tampil-salam","kind":"menuju","label":"Hasil saring ditampilkan"},{"from":"inti-kirim-ulang","to":"inti-sapa-pagi","kind":"minta","label":"Ulangi salam yang gagal"},{"from":"inti-laporan-harian","to":"inti-daftar-nama","kind":"catat","label":"Hitung salam per hari"},{"from":"muka-tema-gelap","to":"muka-tampil-salam","kind":"kelola","label":"Atur warna kartu"}],"productEdges":[{"from":"daftar-nama","to":"sapa-pagi","kind":"menuju","label":"Hasil saring ditampilkan"},{"from":"daftar-nama","to":"sapa-pagi","kind":"minta","label":"Ulangi salam yang gagal"}],"appEdges":[{"from":"srv-inti","to":"halaman-muka","kind":"kirim","label":"2 relasi"}],"statuses":["jalan","setengah","reda","rencana"],"kinds":["kirim","minta","kelola","kunci","menuju","catat"],"peran":{"utama":"jalan","separuh":"setengah","mati":"reda"},"aktorIkon":{"Pengguna":"orang","Petugas":"penggeser","Sistem":"pancar"},"merek":"Repo Contoh","judul":"Peta Fitur Repo Contoh","papanJudul":"","statusTugas":[],"tugas":[]}</script>
 <script>(function () {
   var data = JSON.parse(document.getElementById('data').textContent);
   // Hanya halaman yang disajikan lewat HTTP yang boleh membaca manifest ulang.
@@ -850,6 +894,73 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   var TINGGI_NODE = 58;
   var LEBAR_MIN = 196;
   var LEBAR_MAX = 344;
+  // --- papan pekerjaan (tugas.tsv, semuanya opsional) ---
+  // Status TERAKHIR kosakata dianggap selesai; yang lain dianggap berjalan dan dapat tempat di
+  // papan. Repo tanpa `tugas.tsv` tidak merender apa pun: daftarnya kosong dan judulnya tidak
+  // ada, jadi halaman lama tetap persis seperti sebelumnya.
+  var STATUS_SELESAI = (data.statusTugas && data.statusTugas.length)
+    ? data.statusTugas[data.statusTugas.length - 1]
+    : '';
+  var PROGRES_AKTIF = {};
+  (data.tugas || []).forEach(function (t) {
+    if (t.status === STATUS_SELESAI) return;
+    if (typeof PROGRES_AKTIF[t.subfitur] === 'undefined' || t.progres > PROGRES_AKTIF[t.subfitur]) {
+      PROGRES_AKTIF[t.subfitur] = t.progres;
+    }
+  });
+  var papan = document.getElementById('papan');
+  var papanJudul = document.getElementById('papan-judul');
+  var papanIsi = document.getElementById('papan-isi');
+
+  function bangunPapan() {
+    if (!papan || !data.tugas || !data.tugas.length || !data.papanJudul) return;
+    papanJudul.textContent = data.papanJudul;
+    papanIsi.textContent = '';
+    var selesai = 0;
+    data.tugas.forEach(function (t) {
+      if (t.status === STATUS_SELESAI) {
+        selesai += 1;
+        return;
+      }
+      var baris = document.createElement('div');
+      baris.className = 'papan-baris';
+      baris.setAttribute('data-status', t.status);
+      var kepala = document.createElement('div');
+      kepala.className = 'papan-kepala';
+      var nama = document.createElement('span');
+      nama.className = 'papan-nama';
+      nama.textContent = t.judul;
+      var angka = document.createElement('b');
+      angka.className = 'papan-angka';
+      angka.textContent = t.progres + '%';
+      kepala.appendChild(nama);
+      kepala.appendChild(angka);
+      var rel = document.createElement('div');
+      rel.className = 'papan-rel';
+      rel.textContent = t.status + ' - ' + t.pemegang;
+      var jalur = document.createElement('div');
+      jalur.className = 'papan-jalur';
+      var batang = document.createElement('div');
+      batang.className = 'papan-batang';
+      batang.style.width = t.progres + '%';
+      jalur.appendChild(batang);
+      var rumah = document.createElement('div');
+      rumah.className = 'papan-rumah';
+      rumah.textContent = t.subfitur;
+      baris.appendChild(kepala);
+      baris.appendChild(rel);
+      baris.appendChild(jalur);
+      baris.appendChild(rumah);
+      papanIsi.appendChild(baris);
+    });
+    if (selesai) {
+      var hitung = document.createElement('p');
+      hitung.className = 'papan-hitung';
+      hitung.textContent = selesai + ' ' + STATUS_SELESAI;
+      papanIsi.appendChild(hitung);
+    }
+    papan.hidden = false;
+  }
   var SKALA_MIN = 0.62;
   // Di bawah skala ini teks kartu toh tidak terbaca (21 px x 0,45 = 9,4 px), jadi
   // kartu ditampilkan sebagai cip saja.
@@ -1750,9 +1861,15 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
       if (!pts.length) { return; }
       var b = batasKlaster(pts);
       if (state.mode === 'subfitur') {
-        // Lajur service membentang selebar dunia: kotak yangukur dari isi saja membuat
+        // Lajur service membentang selebar dunia: kotak yang diukur dari isi saja membuat
         // peta terlihat sebagai kotak mengambang dengan lubang besar di kanan.
-        b = { x: 26, y: b.y, w: W - 52, h: b.h };
+        // Tepi kirinya tidak boleh konstanta: pisahkanKlaster bisa mendorong isi ke kiri
+        // batas dunia, dan sentralisasi hanya jalan kalau muatannya masih sempit. Lajur yang
+        // lebih sempit dari isinya membuat kartu keluar kotaknya sendiri, bahkan ke kiri
+        // label grupnya. Jadi tepi kiri mengikuti kartu paling kiri yang sungguh ada.
+        var kiri = 26;
+        nodes.forEach(function (n) { kiri = Math.min(kiri, n.x - 16); });
+        b = { x: kiri, y: b.y, w: W - kiri - 26, h: b.h };
       }
       var w = warnaGrup(g);
       var kotak = el('rect', {
@@ -1837,6 +1954,18 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
           ', ' + jumlah + (state.mode === 'subfitur' ? ' operasi' : ' sub-fitur')
       });
       nodeLayer.appendChild(g);
+      // Kartu sub-fitur yang punya pekerjaan berjalan memakai persen terbesarnya sebagai tanda.
+      // Hanya mode sub-fitur: di mode lain `n.id` adalah produk atau aplikasi, bukan rumah tugas.
+      if (state.mode === 'subfitur' && typeof PROGRES_AKTIF[n.id] !== 'undefined') {
+        var tanda = el('text', {
+          x: (n.x + n.w - 8).toFixed(1),
+          y: (n.y + 16).toFixed(1),
+          'text-anchor': 'end',
+          'class': 'node-progres'
+        });
+        tanda.textContent = PROGRES_AKTIF[n.id] + '%';
+        g.appendChild(tanda);
+      }
       g.appendChild(el('rect', {
         x: n.x.toFixed(1),
         y: n.y.toFixed(1),
@@ -3223,6 +3352,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   bacaPalet();
   isiIkon();
   bangunLegenda();
+  bangunPapan();
   // Boot ditunda satu frame. sesuaikanTampilan() mengukur lebar kanvas, dan sebelum
   // layout tenang hasilnya ~2% terlalu lebar: dasar zoom-nya salah, jadi label persen
   // meleset begitu tampilan tersimpan dipulihkan.

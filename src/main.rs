@@ -203,7 +203,7 @@ pub(crate) fn cetak_bantuan() {
     println!("  PERINTAH kosong = generate.");
     println!();
     println!("PERINTAH:");
-    println!("  init       cetak kerangka tujuh manifest docs/view/ (berkas yang ada tidak ditimpa)");
+    println!("  init       cetak kerangka delapan manifest docs/view/ (tugas.tsv opsional; berkas yang ada tidak ditimpa)");
     println!("  generate   validasi manifest (termasuk config.tsv) lalu tulis docs/view/index.html");
     println!("  check      validasi dan pastikan index.html masih sinkron dengan manifest");
     println!("  audit      cocokkan isi kode terhadap token di titik_masuk + ringkasan + cara_kerja");

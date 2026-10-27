@@ -754,3 +754,46 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; }
 }
+/* --- papan pekerjaan (tugas.tsv) ---
+   Panel ini hanya diisi kalau repo memakainya, jadi tidak ada satu pun gaya yang berlaku saat
+   `tugas.tsv` tidak ada. Status TIDAK dipilih lewat nama di sini: nama status adalah data dari
+   config.tsv, dan kode tampilan tidak boleh mengenalnya. Yang beranimasi adalah setiap baris
+   yang memang terpasang di papan — papan ini hanya menampung pekerjaan yang belum selesai. */
+.papan { margin-top: var(--sp-5); padding-top: var(--sp-4); border-top: 1px solid var(--garis); }
+.papan h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-3);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  color: var(--teks-lembut);
+}
+.papan-baris { padding: var(--sp-3) 0; border-top: 1px solid var(--panel-lembut); }
+.papan-baris:first-of-type { border-top: 0; padding-top: 0; }
+.papan-kepala { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-2); }
+.papan-nama { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-2); color: var(--teks); }
+.papan-angka { font-size: var(--fs-2); font-weight: 700; color: var(--aksen-tegas); font-variant-numeric: tabular-nums; }
+.papan-rel { margin-top: var(--sp-1); font-size: var(--fs-1); color: var(--teks-lembut); }
+.papan-jalur { position: relative; margin-top: var(--sp-2); height: 6px; overflow: hidden; border-radius: var(--r-pill); background: var(--panel-lembut); }
+.papan-batang { position: relative; height: 100%; border-radius: var(--r-pill); background: var(--aksen); }
+.papan-batang::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--panel), transparent);
+  animation: papan-berjalan 2.4s linear infinite;
+}
+@keyframes papan-berjalan {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+.papan-rumah { margin-top: var(--sp-1); font-size: var(--fs-1); color: var(--teks-lembut); font-variant-numeric: tabular-nums; }
+.papan-hitung { margin: var(--sp-3) 0 0; font-size: var(--fs-1); color: var(--teks-lembut); font-variant-numeric: tabular-nums; }
+#jejaring .node-progres { fill: var(--aksen-tegas); font-size: var(--fs-1); font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .papan-batang::after { display: none; animation: none; }
+}

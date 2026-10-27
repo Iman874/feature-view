@@ -1,4 +1,4 @@
-//! Membaca dan mengurai ketujuh manifest TSV menjadi Model, plus cap isi untuk membuktikan
+//! Membaca dan mengurai manifest TSV menjadi Model, plus cap isi untuk membuktikan
 //! halaman masih sinkron. Semua pesan galat parse lahir di sini.
 
 use std::collections::HashMap;
@@ -21,11 +21,16 @@ pub(crate) const MAPPING_FILE: &str = "docs/view/pemetaan.tsv";
 pub(crate) const FEATURES_FILE: &str = "docs/view/features.tsv";
 
 pub(crate) const EDGES_FILE: &str = "docs/view/edges.tsv";
+/// Opsional: repo yang belum memakai papan pekerjaan tidak punya berkas ini, dan hasilnya harus
+/// tetap sama seperti sebelum papan ada.
+pub(crate) const TASKS_FILE: &str = "docs/view/tugas.tsv";
 
 pub(crate) const OUTPUT_FILE: &str = "docs/view/index.html";
 
-/// Urutan tetap: sidik jari manifest dihitung dari ketujuh file ini dalam urutan ini.
-pub(crate) const MANIFEST_FILES: [&str; 7] = [
+/// Urutan tetap: sidik jari manifest dihitung dari file-file ini dalam urutan ini.
+/// `TASKS_FILE` ikut meski opsional: begitu sebuah repo memakainya, isinya wajib bergerak
+/// bersama cap halaman.
+pub(crate) const MANIFEST_FILES: [&str; 8] = [
     CONFIG_FILE,
     SERVICES_FILE,
     PRODUCTS_FILE,
@@ -33,6 +38,7 @@ pub(crate) const MANIFEST_FILES: [&str; 7] = [
     MAPPING_FILE,
     FEATURES_FILE,
     EDGES_FILE,
+    TASKS_FILE,
 ];
 
 /// Kunci wajib di config.tsv. Nilai kosong = galat, bukan default diam-diam.
@@ -125,6 +131,21 @@ pub(crate) fn muat_model(root: &Path) -> Result<Model, LoadError> {
         }
     };
 
+    // Papan pekerjaan opsional dengan sengaja: repo yang belum memakainya tidak boleh tiba-tiba
+    // gagal `check` hanya karena sebuah berkas tidak ada. Kalau berkasnya ADA lalu rusak, itu
+    // galat nyata dan ia masuk `galat` seperti manifest lain.
+    let tugas = match fs::read_to_string(root.join(TASKS_FILE)) {
+        Ok(isi) => match parse_tugas(&isi, TASKS_FILE) {
+            Ok(v) => v,
+            Err(mut e) => {
+                galat.append(&mut e);
+                Vec::new()
+            }
+        },
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Vec::new(),
+        Err(e) => return Err(LoadError::Io(format!("GAGAL membaca {}: {e}", TASKS_FILE))),
+    };
+
     if !galat.is_empty() {
         return Err(LoadError::Manifest(galat));
     }
@@ -151,6 +172,7 @@ pub(crate) fn muat_model(root: &Path) -> Result<Model, LoadError> {
         mappings,
         features,
         edges,
+        tugas,
     };
 
     galat = validate(&model, root);
@@ -247,6 +269,11 @@ pub(crate) fn parse_config(isi: &str, label: &str) -> Result<Config, Vec<String>
         }
     }
 
+    // Kosakata papan pekerjaan. Sengaja TIDAK masuk CONFIG_KEYS: repo yang belum memakai papan
+    // tidak boleh gagal hanya karena kunci ini hilang. Daftar kosong berarti "belum dipakai", dan
+    // `validate` yang menuntut saat `tugas.tsv` benar-benar berisi.
+    let status_tugas = split_daftar(&ambil("status_tugas"));
+
     if !galat.is_empty() {
         return Err(galat);
     }
@@ -265,6 +292,8 @@ pub(crate) fn parse_config(isi: &str, label: &str) -> Result<Config, Vec<String>
         aktor_ikon,
         minimum_fitur,
         peran: peran_kontrak,
+        status_tugas,
+        judul_papan: ambil("judul_papan"),
     })
 }
 
@@ -561,6 +590,69 @@ pub(crate) fn parse_edges(isi: &str, label: &str) -> Result<Vec<Edge>, Vec<Strin
     }
 }
 
+/// Baca `tugas.tsv` — `id|subfitur|judul|status|progres|pemegang|berkas|catatan`.
+/// Hanya kolom terakhir yang boleh kosong. `progres` ditolak kalau bukan bilangan 0..=100:
+/// angka yang tampil di layar harus bisa dipertanggungjawabkan, jadi nilai yang tidak terbaca
+/// tidak pernah diam-diam jadi nol. Berkas tanpa baris adalah keadaan sah (papan belum dipakai),
+/// tidak seperti `edges.tsv` yang menuntut isi.
+pub(crate) fn parse_tugas(isi: &str, label: &str) -> Result<Vec<Tugas>, Vec<String>> {
+    let mut hasil = Vec::new();
+    let mut galat = Vec::new();
+
+    for (indeks, baris) in isi.lines().enumerate() {
+        let nomor = indeks + 1;
+        let bersih = baris.trim();
+        if bersih.is_empty() || bersih.starts_with('#') {
+            continue;
+        }
+        let field: Vec<&str> = bersih.split('|').map(str::trim).collect();
+        if field.len() != 8 {
+            galat.push(format!(
+                "{label}:{nomor}: butuh 8 field (id|subfitur|judul|status|progres|pemegang|berkas|catatan), dapat {}",
+                field.len()
+            ));
+            continue;
+        }
+        if field[..7].iter().any(|f| f.is_empty()) {
+            galat.push(format!(
+                "{label}:{nomor}: semua field kecuali `catatan` wajib terisi"
+            ));
+            continue;
+        }
+        if !id_aman(field[0]) {
+            galat.push(format!("{label}:{nomor}: id tugas tidak sah: {}", field[0]));
+            continue;
+        }
+        let progres: u8 = match field[4].parse() {
+            Ok(v @ 0..=100) => v,
+            _ => {
+                galat.push(format!(
+                    "{label}:{nomor}: `progres` harus bilangan 0..=100, dapat `{}`",
+                    field[4]
+                ));
+                continue;
+            }
+        };
+        hasil.push(Tugas {
+            id: field[0].to_string(),
+            subfitur: field[1].to_string(),
+            judul: field[2].to_string(),
+            status: field[3].to_string(),
+            progres,
+            pemegang: field[5].to_string(),
+            berkas: field[6].to_string(),
+            notes: field[7].to_string(),
+            line: nomor,
+        });
+    }
+
+    if galat.is_empty() {
+        Ok(hasil)
+    } else {
+        Err(galat)
+    }
+}
+
 pub(crate) fn split_daftar(nilai: &str) -> Vec<String> {
     nilai
         .split(',')
@@ -570,13 +662,19 @@ pub(crate) fn split_daftar(nilai: &str) -> Vec<String> {
         .collect()
 }
 
-/// Sidik jari isi ketujuh TSV (FNV-1a 64 bit). Bukan checksum keamanan: hanya pemicu
+/// Sidik jari isi manifest TSV (FNV-1a 64 bit). Bukan checksum keamanan: hanya pemicu
 /// "manifest berubah" bagi halaman yang sedang bersaji, dan penanda provenance di HTML.
 pub(crate) fn cap_manifest(root: &Path) -> Result<String, String> {
     let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
     for nama in MANIFEST_FILES {
         let path = root.join(nama);
-        let isi = fs::read(&path).map_err(|e| format!("GAGAL membaca {}: {e}", path.display()))?;
+        let isi = match fs::read(&path) {
+            Ok(v) => v,
+            // Satu-satunya manifest yang boleh tidak ada. Yang lain tetap gagal seperti sebelumnya,
+            // supaya cap tidak pernah dihitung dari dataset yang bolong tanpa ada yang tahu.
+            Err(_) if nama == TASKS_FILE => Vec::new(),
+            Err(e) => return Err(format!("GAGAL membaca {}: {e}", path.display())),
+        };
         for byte in &isi {
             hash ^= *byte as u64;
             hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
@@ -605,6 +703,30 @@ pub(crate) fn pesan_manifest(galat: LoadError) -> String {
 mod tests {
     use super::*;
     use crate::uji::*;
+
+    #[test]
+    fn parse_tugas_menerima_delapan_field_dan_mengabaikan_komentar() {
+        let isi = "# komentar\n# contoh: a|b|c|d|e|f|g|h\nt1|svc-a|Siapkan rute|jalan|40|agen|plan/t1.md|\n";
+        let hasil = parse_tugas(isi, "tugas.tsv").expect("harus valid");
+        assert_eq!(hasil.len(), 1, "baris komentar tidak boleh dihitung");
+        assert_eq!(hasil[0].progres, 40);
+        assert_eq!(hasil[0].berkas, "plan/t1.md");
+        assert!(hasil[0].notes.is_empty(), "catatan satu-satunya kolom yang boleh kosong");
+    }
+
+    #[test]
+    fn parse_tugas_menolak_progres_di_luar_seratus_dan_kolom_kurang() {
+        let jauh = "t1|svc-a|Judul|jalan|140|agen|plan/t1.md|\n";
+        let galat = parse_tugas(jauh, "tugas.tsv").expect_err("140 bukan progres yang sah");
+        assert!(
+            galat.iter().any(|g| g.contains("0..=100, dapat `140`")),
+            "pesan harus menyebut nilai yang salah, bukan diam-diam memotong: {galat:?}"
+        );
+        let kurang = "t1|svc-a|Judul|jalan|40|agen|\n";
+        let galat = parse_tugas(kurang, "tugas.tsv").expect_err("tujuh field ditolak");
+        assert!(galat.iter().any(|g| g.contains("butuh 8 field")), "{galat:?}");
+    }
+
     #[test]
     fn parse_services_menerima_tujuh_field_termasuk_ikon() {
         let isi = "# komentar\napp|App|Flutter|Deskripsi|svc-muka|docs|flutter\n";

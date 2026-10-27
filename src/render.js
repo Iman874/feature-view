@@ -28,6 +28,73 @@
   var TINGGI_NODE = 58;
   var LEBAR_MIN = 196;
   var LEBAR_MAX = 344;
+  // --- papan pekerjaan (tugas.tsv, semuanya opsional) ---
+  // Status TERAKHIR kosakata dianggap selesai; yang lain dianggap berjalan dan dapat tempat di
+  // papan. Repo tanpa `tugas.tsv` tidak merender apa pun: daftarnya kosong dan judulnya tidak
+  // ada, jadi halaman lama tetap persis seperti sebelumnya.
+  var STATUS_SELESAI = (data.statusTugas && data.statusTugas.length)
+    ? data.statusTugas[data.statusTugas.length - 1]
+    : '';
+  var PROGRES_AKTIF = {};
+  (data.tugas || []).forEach(function (t) {
+    if (t.status === STATUS_SELESAI) return;
+    if (typeof PROGRES_AKTIF[t.subfitur] === 'undefined' || t.progres > PROGRES_AKTIF[t.subfitur]) {
+      PROGRES_AKTIF[t.subfitur] = t.progres;
+    }
+  });
+  var papan = document.getElementById('papan');
+  var papanJudul = document.getElementById('papan-judul');
+  var papanIsi = document.getElementById('papan-isi');
+
+  function bangunPapan() {
+    if (!papan || !data.tugas || !data.tugas.length || !data.papanJudul) return;
+    papanJudul.textContent = data.papanJudul;
+    papanIsi.textContent = '';
+    var selesai = 0;
+    data.tugas.forEach(function (t) {
+      if (t.status === STATUS_SELESAI) {
+        selesai += 1;
+        return;
+      }
+      var baris = document.createElement('div');
+      baris.className = 'papan-baris';
+      baris.setAttribute('data-status', t.status);
+      var kepala = document.createElement('div');
+      kepala.className = 'papan-kepala';
+      var nama = document.createElement('span');
+      nama.className = 'papan-nama';
+      nama.textContent = t.judul;
+      var angka = document.createElement('b');
+      angka.className = 'papan-angka';
+      angka.textContent = t.progres + '%';
+      kepala.appendChild(nama);
+      kepala.appendChild(angka);
+      var rel = document.createElement('div');
+      rel.className = 'papan-rel';
+      rel.textContent = t.status + ' - ' + t.pemegang;
+      var jalur = document.createElement('div');
+      jalur.className = 'papan-jalur';
+      var batang = document.createElement('div');
+      batang.className = 'papan-batang';
+      batang.style.width = t.progres + '%';
+      jalur.appendChild(batang);
+      var rumah = document.createElement('div');
+      rumah.className = 'papan-rumah';
+      rumah.textContent = t.subfitur;
+      baris.appendChild(kepala);
+      baris.appendChild(rel);
+      baris.appendChild(jalur);
+      baris.appendChild(rumah);
+      papanIsi.appendChild(baris);
+    });
+    if (selesai) {
+      var hitung = document.createElement('p');
+      hitung.className = 'papan-hitung';
+      hitung.textContent = selesai + ' ' + STATUS_SELESAI;
+      papanIsi.appendChild(hitung);
+    }
+    papan.hidden = false;
+  }
   var SKALA_MIN = 0.62;
   // Di bawah skala ini teks kartu toh tidak terbaca (21 px x 0,45 = 9,4 px), jadi
   // kartu ditampilkan sebagai cip saja.
@@ -928,9 +995,15 @@
       if (!pts.length) { return; }
       var b = batasKlaster(pts);
       if (state.mode === 'subfitur') {
-        // Lajur service membentang selebar dunia: kotak yangukur dari isi saja membuat
+        // Lajur service membentang selebar dunia: kotak yang diukur dari isi saja membuat
         // peta terlihat sebagai kotak mengambang dengan lubang besar di kanan.
-        b = { x: 26, y: b.y, w: W - 52, h: b.h };
+        // Tepi kirinya tidak boleh konstanta: pisahkanKlaster bisa mendorong isi ke kiri
+        // batas dunia, dan sentralisasi hanya jalan kalau muatannya masih sempit. Lajur yang
+        // lebih sempit dari isinya membuat kartu keluar kotaknya sendiri, bahkan ke kiri
+        // label grupnya. Jadi tepi kiri mengikuti kartu paling kiri yang sungguh ada.
+        var kiri = 26;
+        nodes.forEach(function (n) { kiri = Math.min(kiri, n.x - 16); });
+        b = { x: kiri, y: b.y, w: W - kiri - 26, h: b.h };
       }
       var w = warnaGrup(g);
       var kotak = el('rect', {
@@ -1015,6 +1088,18 @@
           ', ' + jumlah + (state.mode === 'subfitur' ? ' operasi' : ' sub-fitur')
       });
       nodeLayer.appendChild(g);
+      // Kartu sub-fitur yang punya pekerjaan berjalan memakai persen terbesarnya sebagai tanda.
+      // Hanya mode sub-fitur: di mode lain `n.id` adalah produk atau aplikasi, bukan rumah tugas.
+      if (state.mode === 'subfitur' && typeof PROGRES_AKTIF[n.id] !== 'undefined') {
+        var tanda = el('text', {
+          x: (n.x + n.w - 8).toFixed(1),
+          y: (n.y + 16).toFixed(1),
+          'text-anchor': 'end',
+          'class': 'node-progres'
+        });
+        tanda.textContent = PROGRES_AKTIF[n.id] + '%';
+        g.appendChild(tanda);
+      }
       g.appendChild(el('rect', {
         x: n.x.toFixed(1),
         y: n.y.toFixed(1),
@@ -2401,6 +2486,7 @@
   bacaPalet();
   isiIkon();
   bangunLegenda();
+  bangunPapan();
   // Boot ditunda satu frame. sesuaikanTampilan() mengukur lebar kanvas, dan sebelum
   // layout tenang hasilnya ~2% terlalu lebar: dasar zoom-nya salah, jadi label persen
   // meleset begitu tampilan tersimpan dipulihkan.
