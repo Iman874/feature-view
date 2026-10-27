@@ -259,9 +259,17 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
     let _ = writeln!(out, "<div><h2><i data-ikon=\"relasi\"></i><span>Relasi</span></h2><div id=\"legenda-edge\" class=\"legenda-baris\"></div></div>");
     let _ = writeln!(out, "<div><h2><i data-ikon=\"status\"></i><span>Status</span></h2><div id=\"legenda-status\" class=\"legenda-baris\"></div></div>");
     let _ = writeln!(out, "</section>");
-    // Papan pekerjaan: disembunyikan sampai JS punya sesuatu untuk ditampilkan. Judulnya datang
-    // dari config, jadi panel ini tidak pernah membawa kata milik satu repo pun di kode alat.
-    let _ = writeln!(out, "<section id=\"papan\" class=\"papan\" hidden aria-live=\"polite\"><h2 id=\"papan-judul\"></h2><div id=\"papan-isi\" class=\"papan-isi\"></div></section>");
+    // Papan pekerjaan: disembunyikan sampai JS punya sesuatu untuk ditampilkan. Judul dan nama
+    // status datang dari config, jadi panel ini tidak pernah membawa kata milik satu repo pun
+    // di kode alat. Dua daftar berbagi satu ruang lewat tab, bukan ditumpuk ke bawah.
+    let _ = writeln!(out, "<section id=\"papan\" class=\"papan\" hidden aria-live=\"polite\">");
+    let _ = writeln!(out, "<div class=\"papan-tab\" id=\"papan-tab\" role=\"tablist\" aria-label=\"Papan pekerjaan\">");
+    let _ = writeln!(out, "<button type=\"button\" class=\"papan-tab-tombol terpilih\" id=\"papan-tab-berjalan\" role=\"tab\" aria-selected=\"true\" aria-controls=\"papan-isi\" tabindex=\"0\"><span id=\"papan-tab-berjalan-nama\"></span><b id=\"papan-jumlah-berjalan\" class=\"papan-angka\"></b></button>");
+    let _ = writeln!(out, "<button type=\"button\" class=\"papan-tab-tombol\" id=\"papan-tab-selesai\" role=\"tab\" aria-selected=\"false\" aria-controls=\"papan-selesai-isi\" tabindex=\"-1\"><span id=\"papan-tab-selesai-nama\"></span><b id=\"papan-jumlah-selesai\" class=\"papan-angka\"></b></button>");
+    let _ = writeln!(out, "</div>");
+    let _ = writeln!(out, "<div id=\"papan-isi\" class=\"papan-isi\" role=\"tabpanel\" aria-labelledby=\"papan-tab-berjalan\" tabindex=\"0\"></div>");
+    let _ = writeln!(out, "<div id=\"papan-selesai-isi\" class=\"papan-isi\" role=\"tabpanel\" aria-labelledby=\"papan-tab-selesai\" tabindex=\"0\" hidden></div>");
+    let _ = writeln!(out, "</section>");
     let _ = writeln!(out, "</aside>");
 
     let _ = writeln!(out, "<section class=\"peta\" id=\"peta\" aria-label=\"Jejaring fitur\">");

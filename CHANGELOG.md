@@ -11,7 +11,7 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ### Belum dirilis — papan pekerjaan dan lajur yang menahan isinya (2026-10-27)
 
-**Dua perubahan, keduanya terukur di halaman dataset pemakai.**
+**Lima perubahan, semuanya terukur di halaman dataset pemakai.**
 
 1. **Lajur grup mengikuti isinya.** Di mode Sub-fitur lajur service digambar pada `x: 26` tetap,
    sementara `pisahkanKlaster()` boleh mendorong isi ke kiri nilai itu dan sentralisasi hanya jalan
@@ -22,13 +22,34 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
    `id|subfitur|judul|status|progres|pemegang|berkas|catatan`. `check` menolak tugas tanpa sub-fitur
    induk, tanpa berkas, dengan progres di luar 0..=100, dengan status di luar kosakata `status_tugas`
    baru di `config.tsv`, dan dengan status yang berbeda dari kata pertama pada baris `Status:`
-   berkasnya. Halaman menampilkan panel "Pekerjaan berjalan" (`judul_papan`) dengan batang beranimasi
-   dan persen pada kartu yang punya pekerjaan berjalan; animasi mati di `prefers-reduced-motion`.
+   berkasnya. Papan memakai tab `Berjalan`/`Selesai` (`role="tablist"`), jumlah baris di kanan,
+   tab kosong disembunyikan, dan tab aktif disimpan di `sessionStorage`. Tab tersembunyi tidak bisa
+   dipilih lewat klik maupun panah: pilihan jatuh ke tab yang terlihat, dan panah diabaikan bila
+   hanya satu tab tampil. Tinggi papan dibatasi dan isi tab bergulir sendiri supaya halaman tidak
+   memanjang.
+3. **Detail per baris papan.** Setiap baris di kedua tab punya tombol `Detail` yang membuka
+   pekerjaan terkait; membuka detail memilih tab sesuai status, dan pilihan detail bertahan
+   setelah reload/ganti tema. Batang progres tetap beranimasi dan persen muncul pada kartu yang
+   punya pekerjaan berjalan; animasi mati di `prefers-reduced-motion`.
+4. **Enam cacat tampilan papan ditutup.** Inset papan disamakan dengan legenda, mode kecil
+   benar-benar mengecil, judul papan menjadi 12 px, badge progres tidak lagi tertimpa cat,
+   badge disembunyikan saat mode cip, dan kontras isi batang naik menjadi 5,36:1 (gelap) /
+   4,01:1 (terang). Angka spacing/radius tetap hanya token.
+
+5. **Tinggi papan tidak boleh ikut isi.** Panel sempat memakai `max-height: 45vh` dengan daftar
+   yang tumbuh bebas: tab `Selesai` dengan 13 baris menuntut 1.048px dan mendorong blok lain keluar
+   layar, sementara satu baris hanya memakai ~150px — jadi berpindah tab mengubah seluruh sidebar.
+   Sekarang panel `flex: 0 0 auto` dan daftarnya yang dipatok (`max-height: calc(var(--sp-6) * 7)`
+   = 168px, menggulir di dalam dirinya). Terukur pada 1.440x828: panel 248px dengan 13 baris,
+   `scrollHeight` 1.048px di dalam `clientHeight` 168px, sidebar tidak meluber
+   (`scrollHeight == clientHeight == 781`), dan lebarnya identik di kedua tab (287,7px). Dua hal
+   lain ditutup sekaligus: judul papan yang panjang tidak lagi menahan rail (`width: 0`, dijaga tes),
+   dan jejak panel detail memakai kata yang sama dengan tab (`NAMA_BERJALAN`, bukan teks tempelan).
 
 **Kosakata tetap data.** Tidak ada nama status tugas yang masuk ke kode: `status_tugas` dan
 `judul_papan` dibaca dari `config.tsv` dan keduanya opsional, jadi repo yang belum memakai papan
 berperilaku persis seperti sebelum perubahan ini (terukur: `check --root contoh` tetap exit 0 tanpa
-`tugas.tsv`). Angka: `cargo test` 81 -> **87 lulus**, clippy nol, `node --check` lulus.
+`tugas.tsv`). Angka: `cargo test` 81 -> **90 lulus**, clippy nol, `node --check` lulus.
 
 ### 0.2.0 — palet, skala, dan saklar tema (2026-10-26)
 

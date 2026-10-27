@@ -42,59 +42,153 @@
       PROGRES_AKTIF[t.subfitur] = t.progres;
     }
   });
+  // Kata pertama `judul_papan` adalah nama tab pekerjaan yang berjalan. Kata yang sama dipakai
+  // lagi di jejak panel detail: satu konsep tidak boleh punya dua nama di layar.
+  var NAMA_BERJALAN = (data.papanJudul || '').trim().split(/\s+/)[0] || 'Papan';
   var papan = document.getElementById('papan');
-  var papanJudul = document.getElementById('papan-judul');
+  var papanTab = document.getElementById('papan-tab');
   var papanIsi = document.getElementById('papan-isi');
+  var papanSelesaiIsi = document.getElementById('papan-selesai-isi');
+  var papanTabBerjalan = document.getElementById('papan-tab-berjalan');
+  var papanTabSelesai = document.getElementById('papan-tab-selesai');
+  var papanTabBerjalanNama = document.getElementById('papan-tab-berjalan-nama');
+  var papanTabSelesaiNama = document.getElementById('papan-tab-selesai-nama');
+  var papanJumlahBerjalan = document.getElementById('papan-jumlah-berjalan');
+  var papanJumlahSelesai = document.getElementById('papan-jumlah-selesai');
+  var papanTabAktif = 'berjalan';
+
+  function buatBarisPapan(t) {
+    var baris = document.createElement('div');
+    baris.className = 'papan-baris';
+    // Kilau hanya untuk pekerjaan yang angkanya sungguh di antara nol dan seratus. Kelas ini
+    // dibuat dari angka, bukan dari nama status: alat tidak boleh mengenal kosakata repo.
+    if (t.progres > 0 && t.progres < 100) baris.className = 'papan-baris sebagian';
+    baris.setAttribute('data-status', t.status);
+    var kepala = document.createElement('div');
+    kepala.className = 'papan-kepala';
+    var nama = document.createElement('span');
+    nama.className = 'papan-nama';
+    nama.textContent = t.judul;
+    var angka = document.createElement('b');
+    angka.className = 'papan-angka';
+    angka.textContent = t.progres + '%';
+    kepala.appendChild(nama);
+    kepala.appendChild(angka);
+    var rel = document.createElement('div');
+    rel.className = 'papan-rel';
+    rel.textContent = t.status + ' - ' + t.pemegang;
+    var jalur = document.createElement('div');
+    jalur.className = 'papan-jalur';
+    var batang = document.createElement('div');
+    batang.className = 'papan-batang';
+    batang.style.width = t.progres + '%';
+    jalur.appendChild(batang);
+    var rumah = document.createElement('div');
+    rumah.className = 'papan-rumah';
+    rumah.textContent = t.subfitur;
+    var kaki = document.createElement('div');
+    kaki.className = 'papan-kaki';
+    var detail = document.createElement('button');
+    detail.type = 'button';
+    detail.className = 'papan-detail';
+    detail.dataset.tugasId = t.id;
+    detail.setAttribute('aria-label', 'Buka detail ' + t.judul);
+    detail.innerHTML = 'Detail' + ikonHtml('panah');
+    kaki.appendChild(rumah);
+    kaki.appendChild(detail);
+    baris.appendChild(kepala);
+    baris.appendChild(rel);
+    baris.appendChild(jalur);
+    baris.appendChild(kaki);
+    return baris;
+  }
+
+  function pilihTabPapan(nama) {
+    if (papanTabBerjalan && papanTabSelesai && papanTabBerjalan.hidden && papanTabSelesai.hidden) return;
+    var selesai = nama === 'selesai';
+    if (selesai && papanTabSelesai && papanTabSelesai.hidden) { selesai = false; }
+    if (!selesai && papanTabBerjalan && papanTabBerjalan.hidden) { selesai = true; }
+    papanTabAktif = selesai ? 'selesai' : 'berjalan';
+    if (papanTabBerjalan) {
+      papanTabBerjalan.classList.toggle('terpilih', !selesai);
+      papanTabBerjalan.setAttribute('aria-selected', selesai ? 'false' : 'true');
+      papanTabBerjalan.tabIndex = selesai ? -1 : 0;
+    }
+    if (papanTabSelesai) {
+      papanTabSelesai.classList.toggle('terpilih', selesai);
+      papanTabSelesai.setAttribute('aria-selected', selesai ? 'true' : 'false');
+      papanTabSelesai.tabIndex = selesai ? 0 : -1;
+    }
+    if (papanIsi) { papanIsi.hidden = selesai; }
+    if (papanSelesaiIsi) { papanSelesaiIsi.hidden = !selesai; }
+  }
 
   function bangunPapan() {
-    if (!papan || !data.tugas || !data.tugas.length || !data.papanJudul) return;
-    papanJudul.textContent = data.papanJudul;
+    if (!papan || !papanIsi || !papanSelesaiIsi || !papanTabBerjalan || !papanTabSelesai || !data.tugas || !data.tugas.length || !data.papanJudul) return;
+    papanTabBerjalanNama.textContent = NAMA_BERJALAN;
+    papanTabSelesaiNama.textContent = STATUS_SELESAI;
+    papanTabBerjalan.title = data.papanJudul;
+    papanTabSelesai.title = STATUS_SELESAI;
     papanIsi.textContent = '';
+    papanSelesaiIsi.textContent = '';
+    var berjalan = 0;
     var selesai = 0;
     data.tugas.forEach(function (t) {
       if (t.status === STATUS_SELESAI) {
+        papanSelesaiIsi.appendChild(buatBarisPapan(t));
         selesai += 1;
         return;
       }
-      var baris = document.createElement('div');
-      baris.className = 'papan-baris';
-      baris.setAttribute('data-status', t.status);
-      var kepala = document.createElement('div');
-      kepala.className = 'papan-kepala';
-      var nama = document.createElement('span');
-      nama.className = 'papan-nama';
-      nama.textContent = t.judul;
-      var angka = document.createElement('b');
-      angka.className = 'papan-angka';
-      angka.textContent = t.progres + '%';
-      kepala.appendChild(nama);
-      kepala.appendChild(angka);
-      var rel = document.createElement('div');
-      rel.className = 'papan-rel';
-      rel.textContent = t.status + ' - ' + t.pemegang;
-      var jalur = document.createElement('div');
-      jalur.className = 'papan-jalur';
-      var batang = document.createElement('div');
-      batang.className = 'papan-batang';
-      batang.style.width = t.progres + '%';
-      jalur.appendChild(batang);
-      var rumah = document.createElement('div');
-      rumah.className = 'papan-rumah';
-      rumah.textContent = t.subfitur;
-      baris.appendChild(kepala);
-      baris.appendChild(rel);
-      baris.appendChild(jalur);
-      baris.appendChild(rumah);
-      papanIsi.appendChild(baris);
+      papanIsi.appendChild(buatBarisPapan(t));
+      berjalan += 1;
     });
-    if (selesai) {
-      var hitung = document.createElement('p');
-      hitung.className = 'papan-hitung';
-      hitung.textContent = selesai + ' ' + STATUS_SELESAI;
-      papanIsi.appendChild(hitung);
-    }
+    papanJumlahBerjalan.textContent = berjalan ? String(berjalan) : '';
+    papanJumlahSelesai.textContent = selesai ? String(selesai) : '';
+    papanTabBerjalan.hidden = berjalan === 0;
+    papanTabSelesai.hidden = selesai === 0;
+    papanTabBerjalan.setAttribute('aria-label', data.papanJudul + ' (' + berjalan + ')');
+    papanTabSelesai.setAttribute('aria-label', STATUS_SELESAI + ' (' + selesai + ')');
     papan.hidden = false;
+    pilihTabPapan(berjalan === 0 && selesai > 0 ? 'selesai' : 'berjalan');
   }
+  function pasangDetailPapan(isi) {
+    if (!isi) return;
+    isi.addEventListener('click', function (event) {
+      var tombol = event.target.closest ? event.target.closest('.papan-detail') : null;
+      if (!tombol) { return; }
+      tampilkanDetail('tugas', tombol.dataset.tugasId);
+    });
+  }
+  pasangDetailPapan(papanIsi);
+  pasangDetailPapan(papanSelesaiIsi);
+
+  function pasangTabPapan() {
+    if (!papanTab) { return; }
+    papanTab.addEventListener('click', function (event) {
+      var tombol = event.target.closest ? event.target.closest('.papan-tab-tombol') : null;
+      if (!tombol) { return; }
+      pilihTabPapan(tombol.id === 'papan-tab-selesai' ? 'selesai' : 'berjalan');
+      simpanTampilan();
+    });
+    papanTab.addEventListener('keydown', function (event) {
+      var tombol = event.target.closest ? event.target.closest('.papan-tab-tombol') : null;
+      if (!tombol) { return; }
+      var daftar = [papanTabBerjalan, papanTabSelesai].filter(function (t) { return t && !t.hidden; });
+      if (daftar.length < 2) { return; }
+      var posisi = daftar.indexOf(tombol);
+      var tujuan = null;
+      if (event.key === 'ArrowRight') { tujuan = daftar[(posisi + 1) % daftar.length]; }
+      if (event.key === 'ArrowLeft') { tujuan = daftar[(posisi + daftar.length - 1) % daftar.length]; }
+      if (event.key === 'Home') { tujuan = daftar[0]; }
+      if (event.key === 'End') { tujuan = daftar[daftar.length - 1]; }
+      if (!tujuan) { return; }
+      event.preventDefault();
+      tujuan.focus();
+      pilihTabPapan(tujuan.id === 'papan-tab-selesai' ? 'selesai' : 'berjalan');
+      simpanTampilan();
+    });
+  }
+  pasangTabPapan();
   var SKALA_MIN = 0.62;
   // Di bawah skala ini teks kartu toh tidak terbaca (21 px x 0,45 = 9,4 px), jadi
   // kartu ditampilkan sebagai cip saja.
@@ -111,6 +205,7 @@
   var byFeature = peta();
   var byProduct = peta();
   var byApp = peta();
+  var byTugas = peta();
   var serviceOf = peta();
   var colorOf = peta();
   var actorColor = peta();
@@ -285,6 +380,7 @@
   data.features.forEach(function (f) { byFeature[f.id] = f; });
   data.products.forEach(function (p) { byProduct[p.id] = p; });
   data.apps.forEach(function (a) { byApp[a.id] = a; });
+  (data.tugas || []).forEach(function (t) { byTugas[t.id] = t; });
   data.services.forEach(function (s, i) {
     serviceOf[s.key] = s;
   });
@@ -1088,18 +1184,6 @@
           ', ' + jumlah + (state.mode === 'subfitur' ? ' operasi' : ' sub-fitur')
       });
       nodeLayer.appendChild(g);
-      // Kartu sub-fitur yang punya pekerjaan berjalan memakai persen terbesarnya sebagai tanda.
-      // Hanya mode sub-fitur: di mode lain `n.id` adalah produk atau aplikasi, bukan rumah tugas.
-      if (state.mode === 'subfitur' && typeof PROGRES_AKTIF[n.id] !== 'undefined') {
-        var tanda = el('text', {
-          x: (n.x + n.w - 8).toFixed(1),
-          y: (n.y + 16).toFixed(1),
-          'text-anchor': 'end',
-          'class': 'node-progres'
-        });
-        tanda.textContent = PROGRES_AKTIF[n.id] + '%';
-        g.appendChild(tanda);
-      }
       g.appendChild(el('rect', {
         x: n.x.toFixed(1),
         y: n.y.toFixed(1),
@@ -1165,6 +1249,20 @@
         '\nStatus: ' + obj.status + '\n' +
         (state.mode === 'subfitur' ? 'Operasi: ' : 'Sub-fitur: ') + jumlah;
       g.appendChild(title);
+      // Kartu sub-fitur yang punya pekerjaan berjalan memakai persen terbesarnya sebagai tanda.
+      // Ditempel PALING AKHIR: SVG tidak punya z-index, jadi tulisan yang lebih dulu masuk akan
+      // tertimpa kotak kartu dan hilang dari layar (diukur lewat elementFromPoint).
+      // Hanya mode sub-fitur: di mode lain `n.id` adalah produk atau aplikasi, bukan rumah tugas.
+      if (state.mode === 'subfitur' && typeof PROGRES_AKTIF[n.id] !== 'undefined') {
+        var tanda = el('text', {
+          x: (n.x + n.w - 8).toFixed(1),
+          y: (n.y + 16).toFixed(1),
+          'text-anchor': 'end',
+          'class': 'node-progres'
+        });
+        tanda.textContent = PROGRES_AKTIF[n.id] + '%';
+        g.appendChild(tanda);
+      }
       n.el = g;
       n.jumlahTotal = jumlah;
       n.judulAwal = title.textContent;
@@ -1467,6 +1565,7 @@
       service: state.service,
       query: state.query,
       pilih: detailTerakhir ? { kind: detailTerakhir.kind, id: detailTerakhir.id } : null,
+      papan: papanTabAktif,
       view: { x: view.x, y: view.y, w: view.w, h: view.h },
       pohon: pohonTerbuka(),
       kecil: !!(pohon && pohon.classList.contains('kecil'))
@@ -1512,6 +1611,11 @@
     aktifkanMode(MODES.indexOf(butir.mode) >= 0 ? butir.mode : 'produk');
     if (butir.pohon) { aturPohon(true); }
     if (butir.kecil) { aturKecil(true); }
+    if (butir.papan === 'selesai' && papanSelesaiIsi && papanSelesaiIsi.children.length) {
+      pilihTabPapan('selesai');
+    } else if (butir.papan === 'berjalan' && papanIsi && papanIsi.children.length) {
+      pilihTabPapan('berjalan');
+    }
     if (butir.pilih && butir.pilih.id) { tampilkanDetail(butir.pilih.kind, butir.pilih.id); }
     var v = butir.view;
     if (v && typeof v.w === 'number' && v.w > 0) {
@@ -1860,6 +1964,26 @@
         bagian('berkas', 'Dokumentasi', '<ul class="tautan-list">' + dokumenList(a.docs) + '</ul>', false);
       tandaiPohon('app', id);
       if (posisi[id]) { fokusNode(id); } else { bersihkanFokus(); }
+      return;
+    }
+
+    if (kind === 'tugas') {
+      var t = byTugas[id];
+      if (!t) { return; }
+      pilihTabPapan(t.status === STATUS_SELESAI ? 'selesai' : 'berjalan');
+      var fitur = byFeature[t.subfitur];
+      var namaFitur = fitur ? fitur.name : t.subfitur;
+      panel.innerHTML =
+        jejak([ikonHtml('papan') + '<span>' + esc(NAMA_BERJALAN) + '</span>', '<span class="jejak-aktif">' + esc(t.judul) + '</span>']) +
+        kepala('papan', t.judul, '<span class="badge-service">' + esc(t.status) + '</span>') +
+        '<p class="ringkas">' + esc(t.catatan || 'Tidak ada catatan.') + '</p>' +
+        '<p class="detail-kecil">Pemegang: ' + esc(t.pemegang) + ' - ' + t.progres + '%</p>' +
+        '<div class="papan-jalur"><div class="papan-batang" style="width:' + t.progres + '%"></div></div>' +
+        bagian('subfitur', 'Sub-fitur tertaut', '<p>' + pilih('subfitur', t.subfitur, namaFitur) + '</p>', true) +
+        bagian('berkas', 'Berkas task', '<ul class="tautan-list">' + dokumenList([t.berkas]) + '</ul>', true);
+      tandaiPohon('subfitur', t.subfitur);
+      var sorotTugas = state.mode === 'subfitur' ? t.subfitur : (fitur ? (state.mode === 'produk' ? fitur.product : fitur.app) : null);
+      if (sorotTugas && posisi[sorotTugas]) { fokusNode(sorotTugas); } else { bersihkanFokus(); }
       return;
     }
 

@@ -113,12 +113,28 @@ mod tests {
     // ulang isinya, supaya satu baris `font-size: 0.79rem` baru tidak lolos diam-diam.
     // ---------------------------------------------------------------------------
 
+    /// Buang komentar CSS supaya contoh sintaks di dalamnya tidak dibaca sebagai aturan.
+    fn buang_komentar(css: &str) -> String {
+        let mut hasil = String::with_capacity(css.len());
+        let mut sisa = css;
+        while let Some(awal) = sisa.find("/*") {
+            hasil.push_str(&sisa[..awal]);
+            match sisa[awal + 2..].find("*/") {
+                Some(akhir) => sisa = &sisa[awal + 2 + akhir + 2..],
+                None => return hasil,
+            }
+        }
+        hasil.push_str(sisa);
+        hasil
+    }
+
     /// Pecah CSS menjadi daftar deklarasi `properti: nilai`. Kurung dikorbankan jadi
     /// pemisah karena sebagian aturan di berkas ini ditulis satu baris dengan beberapa
     /// deklarasi sekaligus; memeriksa awal baris akan kehilangan semuanya.
     fn deklarasi(teks: &str, properti: &str) -> Vec<String> {
         let awalan = format!("{properti}:");
-        teks.replace(['{', '}'], ";")
+        buang_komentar(teks)
+            .replace(['{', '}'], ";")
             .split(';')
             .map(str::trim)
             .filter_map(|bagian| bagian.strip_prefix(&awalan))
@@ -209,6 +225,112 @@ mod tests {
             .map(|(n, _)| n)
             .collect();
         assert!(hilang.is_empty(), "variabel dipakai tanpa definisi dan tanpa cadangan: {hilang:?}");
+    }
+
+    /// Selector dari setiap aturan yang menyembunyikan sesuatu (`display: none`). Penjaga mode
+    /// sembunyi membacanya sebagai daftar anggota, bukan sebagai potongan teks: pencocokan
+    /// longgar meloloskan `.papan-apa-aja` dan membuat penjaganya sendiri terlihat hijau
+    /// padahal tidak mengikat apa pun.
+    fn daftar_sembunyi() -> Vec<Vec<String>> {
+        CSS.split('}')
+            .filter(|bagian| bagian.contains("display: none"))
+            .map(|bagian| {
+                bagian
+                    .split('{')
+                    .next()
+                    .unwrap_or("")
+                    .split(',')
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                    .map(str::to_string)
+                    .collect()
+            })
+            .collect()
+    }
+
+    fn disembunyikan(pilihan: &str) -> bool {
+        daftar_sembunyi().iter().any(|daftar| daftar.iter().any(|s| s == pilihan))
+    }
+
+    #[test]
+    fn papan_ikut_disembunyikan_saat_rail_diperkecil() {
+        // Rail kecil hanya menampung ikon. Satu blok teks yang tertinggal di dalamnya membuat
+        // seluruh kolom menolak menyusut: sudah diukur, sidebar 59px jadi 281px hanya karena
+        // panel papan tidak ikut daftar sembunyi.
+        assert!(
+            disembunyikan(".pohon.kecil .papan"),
+            ".pohon.kecil tidak menyembunyikan .papan, jadi mode kecil ikut terbebani teks papan"
+        );
+    }
+
+    #[test]
+    fn mode_cip_menyembunyikan_tanda_progres() {
+        // Pada mode cip kartu dirender 54 unit lebarnya sementara tata letaknya masih memakai
+        // lebar kartu penuh; tanda persen yang menempel di tepi kanan kartu lama ikut tertinggal
+        // di luar kartunya — sudah diukur: teks 10px melayang 116px dari cip-nya.
+        assert!(
+            disembunyikan("#jejaring.simpl .node-progres"),
+            "#jejaring.simpl tidak menyembunyikan .node-progres, jadi angka persen melayang di luar kartu"
+        );
+    }
+
+    /// Isi satu aturan CSS, dipilih lewat selector yang sama persis. Dipakai penjaga yang
+    /// harus membaca deklarasi milik satu kelas, bukan seluruh lembar gaya.
+    fn deklarasi_dari(pilihan: &str) -> String {
+        buang_komentar(CSS)
+            .split('}')
+            .find_map(|bagian| {
+                let (selektor, isi) = bagian.split_once('{')?;
+                selektor
+                    .split(',')
+                    .any(|s| s.trim() == pilihan)
+                    .then(|| isi.trim().to_string())
+            })
+            .unwrap_or_default()
+    }
+
+    #[test]
+    fn papan_tidak_menambah_tinggi_saat_daftar_penuh() {
+        // Panel yang tingginya ikut isi merampas ruang blok di atasnya: tab selesai dengan
+        // tiga belas baris menaikkan panel sekitar 1.100px dan daftar struktur hilang dari
+        // layar. Kontraknya dua — panel tidak boleh ikut tumbuh, dan daftarnya wajib punya
+        // langit-langit sendiri.
+        let punya = |teks: &str, properti: &str, nilai: &str| {
+            teks.split(';').any(|d| match d.split_once(':') {
+                Some((k, v)) => k.trim() == properti && v.trim() == nilai,
+                None => false,
+            })
+        };
+        let panel = deklarasi_dari(".papan");
+        assert!(
+            punya(&panel, "flex", "0 0 auto"),
+            ".papan tidak lagi `flex: 0 0 auto`, jadi tingginya ikut jumlah baris: {panel}"
+        );
+        let langit = deklarasi_dari(".papan-isi")
+            .split(';')
+            .any(|d| matches!(d.split_once(':'), Some((k, _)) if k.trim() == "max-height"));
+        assert!(
+            langit,
+            ".papan-isi kehilangan langit-langit, jadi daftar panjang mendorong blok lain keluar layar"
+        );
+    }
+
+    #[test]
+    fn papan_nama_tidak_menahan_lebar_rail() {
+        // Judul tugas yang panjang tidak boleh ikut dihitung sebagai lebar minimum kolom.
+        // Tanpa `width: 0` di samping `flex: 1 1 0`, satu judul 323px memaksa sidebar naik dari
+        // 321px ke 390px — diukur di Chrome. `min-width: 0` saja tidak cukup, dan mencocokkan
+        // teks "width: 0" secara longgar akan selalu lulus karena `min-width: 0` mengandungnya.
+        let punya_lebar_nol = deklarasi_dari(".papan-nama")
+            .split(';')
+            .any(|d| match d.split_once(':') {
+                Some((k, v)) => k.trim() == "width" && v.trim() == "0",
+                None => false,
+            });
+        assert!(
+            punya_lebar_nol,
+            ".papan-nama tidak lagi menyetel `width: 0`, jadi judul panjang memaksa rail melebar"
+        );
     }
 
     #[test]

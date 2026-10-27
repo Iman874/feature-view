@@ -159,7 +159,7 @@ token ini" menjadi **batas bawah**, dan laporan mengatakannya.
 ## 6. Verifikasi sendiri
 
 ```
-cargo test                                              # 87 tes, tanpa jaringan
+cargo test                                              # 91 tes, tanpa jaringan
 cargo clippy --all-targets -- -D warnings               # harus nol
 node --check src/render.js                              # hanya saat menyentuh skrip halaman
 cargo run -- generate --root contoh && cargo run -- check --root contoh && cargo run -- audit --root contoh

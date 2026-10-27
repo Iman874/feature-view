@@ -191,10 +191,10 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 | `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status, papan pekerjaan | 166 | 0 |
 | `src/manifest.rs` | baca +urai delapan TSV jadi `Model`, cap isi manifest | 834 | 10 |
 | `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 788 | 13 |
-| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 878 | 8 |
+| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 886 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
-| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 246 | 7 |
+| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 368 | 11 |
 | `src/setelan.rs` | batas dan default yang bisa di-override lewat env | 72 | 3 |
 | `src/template.rs` | kerangka `init` + tes dataset contoh | 364 | 9 |
 | `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 231 | 0 |
@@ -230,17 +230,21 @@ suite yang menyalakan — bukan ingatan saya.
 
 ## 9. Tes
 
-`cargo test` sekarang **87 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
+`cargo test` sekarang **91 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
 ditulis permanen (tes `init` memakai folder temporer). `cargo clippy --all-targets -- -D warnings`
 harus nol: penjaga format kode ini adalah suite-nya sendiri. Perintah verifikasi lengkap — termasuk
 gerbang md5 untuk refactor murni dan resep mengukur tampilan di browser — ada di
 [how_to_run.md](how_to_run.md) bagian 6.
 
-Empat tes di `src/aset.rs` tidak menguji kode Rust sama sekali: mereka membaca ulang `view.css` dan
-`render.js` sebagai teks lalu menghitung angkanya — langkah huruf (maksimal enam, semuanya
-`var(--fs-`), tangga radius, jarak pecahan, variabel yang dipakai tanpa definisi, dan kunci tema
-yang harus sama antara cangkang HTML dan skrip. Alasannya persis sama dengan penjaga dokumen:
-kerapihan yang hanya dibuktikan mata akan melonggar oleh satu baris yang tidak dilihat siapa pun.
+Sebelas tes di `src/aset.rs` membaca ulang `view.css`, `render.js`, dan kamus bentuk ikon sebagai
+teks lalu menghitung angkanya — langkah huruf (maksimal enam, semuanya `var(--fs-`), tangga
+radius, jarak pecahan, variabel yang dipakai tanpa definisi, kunci tema yang harus sama antara
+cangkang HTML dan skrip, dua daftar `display: none` yang harus tetap memuat blok yang ikut hilang
+saat rail diperkecil atau kartu dikecilkan jadi cip, `width: 0` pada judul papan yang menahan rail,
+langit-langit tinggi daftar papan, dan setiap bentuk ikon yang diklaim manifest harus ada di
+kamus. Alasannya persis
+sama dengan penjaga dokumen: kerapihan yang hanya dibuktikan mata akan melonggar oleh satu baris
+yang tidak dilihat siapa pun.
 
 **Gerbang untuk refactor murni:** sebelum dan sesudah, jalankan `generate` pada dataset Anda lalu
 bandingkan `md5 index.html` dan `data-cap`. Cap isi manifest tidak berubah kalau data tidak berubah;
