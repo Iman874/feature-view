@@ -191,14 +191,14 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 | `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status, papan pekerjaan | 166 | 0 |
 | `src/manifest.rs` | baca +urai delapan TSV jadi `Model`, cap isi manifest | 834 | 10 |
 | `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 788 | 13 |
-| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 886 | 8 |
+| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 893 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
-| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 368 | 11 |
+| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 373 | 11 |
 | `src/setelan.rs` | batas dan default yang bisa di-override lewat env | 72 | 3 |
 | `src/template.rs` | kerangka `init` + tes dataset contoh | 364 | 9 |
 | `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 231 | 0 |
-| `src/render.js` | bentuk grafik + interaksi halaman (48 bentuk ikon) | - | - |
+| `src/render.js` | bentuk grafik + interaksi halaman (49 bentuk ikon) | - | - |
 | `src/view.css` | gaya halaman | - | - |
 
 Alur satu kali jalan: `muat_model` → `validate` → (`tulis_index` | `audit` | `sajikan`).
@@ -240,7 +240,7 @@ Sebelas tes di `src/aset.rs` membaca ulang `view.css`, `render.js`, dan kamus be
 teks lalu menghitung angkanya — langkah huruf (maksimal enam, semuanya `var(--fs-`), tangga
 radius, jarak pecahan, variabel yang dipakai tanpa definisi, kunci tema yang harus sama antara
 cangkang HTML dan skrip, dua daftar `display: none` yang harus tetap memuat blok yang ikut hilang
-saat rail diperkecil atau kartu dikecilkan jadi cip, `width: 0` pada judul papan yang menahan rail,
+saat rail diperkecil atau kartu dikecilkan jadi cip, `width: 0` pada setiap judul baris yang nowrap (papan dan pohon),
 langit-langit tinggi daftar papan, dan setiap bentuk ikon yang diklaim manifest harus ada di
 kamus. Alasannya persis
 sama dengan penjaga dokumen: kerapihan yang hanya dibuktikan mata akan melonggar oleh satu baris
@@ -269,7 +269,7 @@ barunya, jangan diam-diam.
   ter-bake apa adanya ke halaman). Dengan `* text=auto` saja, peng-clone ber-`core.autocrlf=true`
   menerima CRLF: terukur 3.095 byte CR di `index.html` dan `check --root contoh` exit 1 pada isi
   yang identik. `* text=auto eol=lf` membuat hasil clone tidak bergantung konfigurasi orang.
-- Angka-angka presentasi (48 nama bentuk ikon, rampa posisi `--grup-1..12`, `--status-1..4`,
+- Angka-angka presentasi (49 nama bentuk ikon, rampa posisi `--grup-1..12`, `--status-1..4`,
   `--relasi-1..6`) satu-satunya yang boleh berupa hardcode: itu keputusan gaya, bukan data repo.
   JS membaca rampa sampai token habis lalu melanjutkan dengan hue sudut emas, jadi jumlah service
   tidak dibatasi daftar tetap. Hue kurasi itu memakai S/L yang sama dengan rotasi sudut emas karena

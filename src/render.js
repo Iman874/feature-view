@@ -324,6 +324,7 @@
     semua: '<circle cx="6" cy="6" r="1.6"/><circle cx="18" cy="6" r="1.6"/><circle cx="12" cy="12" r="1.9"/><circle cx="6" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/>',
     struktur: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>',
     tutup: '<path d="M6 6l12 12M18 6L6 18"/>',
+    info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11.2v5.3"/><path d="M12 7.9h.01"/>',
     produk: '<path d="M12 3.5 4.5 7v10L12 20.5l7.5-3.5V7z"/><path d="M4.5 7 12 10.5 19.5 7M12 10.5v10"/>',
     implementasi: '<rect x="3.5" y="4.5" width="17" height="6" rx="2"/><rect x="3.5" y="13.5" width="17" height="6" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
     layanan: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M7 7h.01"/>',
@@ -2295,8 +2296,33 @@
     event.preventDefault();
     tampilkanDetail(node.dataset.kind, node.dataset.id);
   });
+  // --- popup legenda: satu tombol `i` di kanan atas kanvas ---
+  // Legenda bukan navigasi, jadi ia tidak menempati sidebar lagi. Popupnya ditutup oleh
+  // tiga jalan: tombolnya sendiri, klik di luar, dan Escape. Elemen datar (legenda-edge /
+  // legenda-status) tetap diisi bangunLegenda() karena id-nya tidak berpindah.
+  var tombolInfo = document.getElementById('tombol-info');
+  var legendaPopup = document.getElementById('legenda-popover');
+  function legendaTerbuka() { return !!legendaPopup && !legendaPopup.hidden; }
+  function aturLegenda(buka) {
+    if (!tombolInfo || !legendaPopup) { return; }
+    legendaPopup.hidden = !buka;
+    tombolInfo.setAttribute('aria-expanded', buka ? 'true' : 'false');
+  }
+  if (tombolInfo && legendaPopup) {
+    tombolInfo.addEventListener('click', function (event) {
+      event.stopPropagation();
+      aturLegenda(!legendaTerbuka());
+    });
+    document.addEventListener('click', function (event) {
+      if (!legendaTerbuka()) { return; }
+      if (event.target.closest && event.target.closest('.info-peta')) { return; }
+      aturLegenda(false);
+    });
+  }
+
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') { return; }
+    if (legendaTerbuka()) { aturLegenda(false); if (tombolInfo) { tombolInfo.focus(); } return; }
     if (pohonTerbuka()) { aturPohon(false); return; }
     bersihkanFokus();
   });

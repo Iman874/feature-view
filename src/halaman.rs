@@ -255,10 +255,8 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         "<p id=\"hasil\" class=\"hasil\" aria-live=\"polite\"></p>"
     );
     let _ = writeln!(out, "<nav id=\"pohon-isi\" class=\"pohon-isi\"></nav>");
-    let _ = writeln!(out, "<section class=\"legenda\" aria-label=\"Legenda\">");
-    let _ = writeln!(out, "<div><h2><i data-ikon=\"relasi\"></i><span>Relasi</span></h2><div id=\"legenda-edge\" class=\"legenda-baris\"></div></div>");
-    let _ = writeln!(out, "<div><h2><i data-ikon=\"status\"></i><span>Status</span></h2><div id=\"legenda-status\" class=\"legenda-baris\"></div></div>");
-    let _ = writeln!(out, "</section>");
+    // Legenda TIDAK lagi di kolom ini. Ia pindah ke tombol info di kanvas (lihat section
+    // `peta`), jadi daftar struktur dan papan pekerjaan dapat seluruh tinggi sidebar.
     // Papan pekerjaan: disembunyikan sampai JS punya sesuatu untuk ditampilkan. Judul dan nama
     // status datang dari config, jadi panel ini tidak pernah membawa kata milik satu repo pun
     // di kode alat. Dua daftar berbagi satu ruang lewat tab, bukan ditumpuk ke bawah.
@@ -288,6 +286,15 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         out,
         "<div class=\"minimap\" aria-label=\"Peta mini\"><svg id=\"minimap\" role=\"img\" aria-label=\"Peta mini jejaring\"></svg></div>"
     );
+    // Legenda dijinjing satu tombol `i` di kanan atas kanvas. Popupnya ada di luar <svg>,
+    // jadi menggeser peta tidak pernah menyeret legenda ikut berpindah.
+    let _ = writeln!(out, "<div class=\"info-peta\">");
+    let _ = writeln!(out, "<button type=\"button\" class=\"tombol ikon-saja tombol-info\" id=\"tombol-info\" aria-label=\"Info legenda peta\" aria-expanded=\"false\" aria-controls=\"legenda-popover\" title=\"Legenda\"><i data-ikon=\"info\"></i></button>");
+    let _ = writeln!(out, "<section id=\"legenda-popover\" class=\"legenda legenda-popover\" aria-label=\"Legenda peta\" hidden>");
+    let _ = writeln!(out, "<div><h2><i data-ikon=\"relasi\"></i><span>Relasi</span></h2><div id=\"legenda-edge\" class=\"legenda-baris\"></div></div>");
+    let _ = writeln!(out, "<div><h2><i data-ikon=\"status\"></i><span>Status</span></h2><div id=\"legenda-status\" class=\"legenda-baris\"></div></div>");
+    let _ = writeln!(out, "</section>");
+    let _ = writeln!(out, "</div>");
     let _ = writeln!(out, "</section>");
     let _ = writeln!(
         out,

@@ -11,7 +11,7 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ### Belum dirilis — papan pekerjaan dan lajur yang menahan isinya (2026-10-27)
 
-**Lima perubahan, semuanya terukur di halaman dataset pemakai.**
+**Enam perubahan, semuanya terukur di halaman dataset pemakai.**
 
 1. **Lajur grup mengikuti isinya.** Di mode Sub-fitur lajur service digambar pada `x: 26` tetap,
    sementara `pisahkanKlaster()` boleh mendorong isi ke kiri nilai itu dan sentralisasi hanya jalan
@@ -33,8 +33,8 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
    punya pekerjaan berjalan; animasi mati di `prefers-reduced-motion`.
 4. **Enam cacat tampilan papan ditutup.** Inset papan disamakan dengan legenda, mode kecil
    benar-benar mengecil, judul papan menjadi 12 px, badge progres tidak lagi tertimpa cat,
-   badge disembunyikan saat mode cip, dan kontras isi batang naik menjadi 5,36:1 (gelap) /
-   4,01:1 (terang). Angka spacing/radius tetap hanya token.
+   badge disembunyikan saat mode cip, dan kontras isi batang terhadap jalurnya 4,05:1 (gelap)
+   / 3,73:1 (terang) setelah jalur dinaikkan ke 55%. Angka spacing/radius tetap hanya token.
 
 5. **Tinggi papan tidak boleh ikut isi.** Panel sempat memakai `max-height: 45vh` dengan daftar
    yang tumbuh bebas: tab `Selesai` dengan 13 baris menuntut 1.048px dan mendorong blok lain keluar
@@ -45,6 +45,20 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
    (`scrollHeight == clientHeight == 781`), dan lebarnya identik di kedua tab (287,7px). Dua hal
    lain ditutup sekaligus: judul papan yang panjang tidak lagi menahan rail (`width: 0`, dijaga tes),
    dan jejak panel detail memakai kata yang sama dengan tab (`NAMA_BERJALAN`, bukan teks tempelan).
+
+6. **Arah tampilan Jalan A: hangat, tenang, dan legenda pindah ke tombol `i`.** Rampa `--netral-1..12`
+   dihangatkan pada kedua skema tanpa mengubah satu nama token pun, dan saturasi skema terang turun
+   45 -> 36. Ambang lama (warna solid tetap >= 4,5 saat dipakai sebagai teks di atas panel) diukur
+   ulang dan tetap lolos: 11,27:1 gelap / 5,59:1 terang. Header 56px, sidebar 286px, panel kanan
+   340px. Kartu terpilih tidak lagi menyala — `drop-shadow(0 0 9px var(--aksen))` diganti tepi
+   `--teks` 1,5px + bayangan `0 2px 6px` hitam 20%. Legenda Relasi/Status keluar dari sidebar dan
+   jadi popup di kanan atas kanvas (262x138px, 9 item), ditutup oleh klik tombol, klik di luar, dan
+   Escape yang mengembalikan fokus ke tombol; 145px yang ia tinggalkan jatuh ke daftar struktur
+   (`#pohon-isi` 440px dari 906px isi). Satu cacat ikut ketutup di jalan: baris pohon nowrap menahan
+   lebar kolom, jadi sidebar menolak menyusut ke basisnya (321px terhadap 286px) sampai `width: 0`
+   dipasang — penjaga `teks_baris_tidak_menahan_lebar_rail` sekarang mengikat tiga selector.
+   Yang **tidak** diubah: renderer tetap SVG, font tetap lokal tanpa jaringan, tema tetap atribut
+   `data-tema`, tidak ada `backdrop-filter`, dan tidak ada tes skala yang dilonggarkan.
 
 **Kosakata tetap data.** Tidak ada nama status tugas yang masuk ke kode: `status_tugas` dan
 `judul_papan` dibaca dari `config.tsv` dan keduanya opsional, jadi repo yang belum memakai papan

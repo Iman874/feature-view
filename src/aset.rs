@@ -316,21 +316,26 @@ mod tests {
     }
 
     #[test]
-    fn papan_nama_tidak_menahan_lebar_rail() {
-        // Judul tugas yang panjang tidak boleh ikut dihitung sebagai lebar minimum kolom.
-        // Tanpa `width: 0` di samping `flex: 1 1 0`, satu judul 323px memaksa sidebar naik dari
-        // 321px ke 390px — diukur di Chrome. `min-width: 0` saja tidak cukup, dan mencocokkan
-        // teks "width: 0" secara longgar akan selalu lulus karena `min-width: 0` mengandungnya.
-        let punya_lebar_nol = deklarasi_dari(".papan-nama")
-            .split(';')
-            .any(|d| match d.split_once(':') {
-                Some((k, v)) => k.trim() == "width" && v.trim() == "0",
-                None => false,
-            });
-        assert!(
-            punya_lebar_nol,
-            ".papan-nama tidak lagi menyetel `width: 0`, jadi judul panjang memaksa rail melebar"
-        );
+    fn teks_baris_tidak_menahan_lebar_rail() {
+        // Judul yang panjang tidak boleh ikut dihitung sebagai lebar minimum kolom. Tanpa
+        // `width: 0` di samping `flex: 1 1 0`, satu judul 323px memaksa sidebar naik dari
+        // 321px ke 390px dan basis 286px tidak pernah tercapai — diukur di Chrome.
+        // `min-width: 0` saja tidak cukup, dan mencocokkan teks "width: 0" secara longgar
+        // akan selalu lulus karena `min-width: 0` mengandungnya.
+        let punya_lebar_nol = |selektor: &str| {
+            deklarasi_dari(selektor)
+                .split(';')
+                .any(|d| match d.split_once(':') {
+                    Some((k, v)) => k.trim() == "width" && v.trim() == "0",
+                    None => false,
+                })
+        };
+        for selektor in [".papan-nama", ".pohon-nama", ".pohon-grup h3 span"] {
+            assert!(
+                punya_lebar_nol(selektor),
+                "{selektor} tidak lagi menyetel `width: 0`, jadi teks nowrap memaksa rail melebar"
+            );
+        }
     }
 
     #[test]
