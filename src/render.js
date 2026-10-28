@@ -2406,7 +2406,8 @@
       det.className = 'pohon-detail';
       var ringkas = document.createElement('summary');
       ringkas.innerHTML = ikonHtml('panah', 'chevron') +
-        '<span class="pohon-angka">' + subfeatures.length + '</span>';
+        '<span class="pohon-angka">' + subfeatures.length + '</span>' +
+        '<span class="pohon-satuan">sub-fitur</span>';
       ringkas.title = subfeatures.length + ' sub-fitur';
       det.appendChild(ringkas);
       var ul = document.createElement('ul');

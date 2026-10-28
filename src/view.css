@@ -99,15 +99,26 @@
   --panel-lembut: var(--netral-3);
   --teks: var(--netral-12);
   --teks-lembut: var(--netral-11);
+  /* Teks baris daftar. --teks-lembut murni hanya 4,28 di atas rel terang, di bawah
+     lantai 4,5 yang alat ini pakai untuk teks; satu sentuhan ke --teks menaikkan
+     keduanya karena --teks selalu berada di sisi yang berlawanan dari rel. */
+  --teks-baris: color-mix(in srgb, var(--teks-lembut) 80%, var(--teks));
   --jaringan: var(--netral-9);
   /* Garis gelap dibuat lapisan transparan, bukan hex baru, supaya satu nilai
      cocok di atas panel mana pun dan tetap terasa satu tingkat. */
   --garis: var(--netral-6);
   --garis-keras: var(--netral-8);
+  /* Rel daftar dan baris terpilih harus SELALU satu langkah berlawanan. Menunjuk
+     --panel untuk keduanya tidak bisa: di skema gelap --panel adalah langkah paling
+     gelap, jadi kartu terpilih justru terlihat cekung di dalam relnya sendiri. */
+  --rail: var(--netral-2);
+  --rel: var(--netral-1);
 }
 :root[data-tema="gelap"] {
   --garis: rgba(255, 255, 255, 0.10);
   --garis-keras: rgba(255, 255, 255, 0.16);
+  --rail: var(--netral-1);
+  --rel: var(--netral-2);
 }
 
 :root {
@@ -229,17 +240,51 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   background: var(--panel);
   border-bottom: 1px solid var(--garis);
 }
-.bar-merek { display: flex; align-items: baseline; gap: var(--sp-5); flex-wrap: wrap; min-width: 0; }
-.bar h1 { margin: 0; font-size: var(--fs-4); font-weight: 700; letter-spacing: -0.01em; white-space: nowrap; }
+.bar-merek { display: flex; align-items: baseline; gap: var(--sp-4); flex-wrap: wrap; min-width: 0; }
+.bar h1 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-3);
+  font-size: var(--fs-4);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+/* Kotak merek memakai huruf pertama dari nama yang dibaca config, bukan huruf
+   yang ditulis di kode tampilan: alat ini tidak boleh mengenal merek pemakainya. */
+.bar h1[data-inisial]:not([data-inisial=""])::before {
+  content: attr(data-inisial);
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: var(--teks);
+  color: var(--bg);
+  font-size: var(--fs-1);
+  font-weight: 700;
+  letter-spacing: 0;
+}
 .bar-meta {
   margin: 0;
   display: flex;
   align-items: center;
-  gap: var(--sp-1) var(--sp-5);
+  gap: var(--sp-1) var(--sp-3);
   color: var(--teks-lembut);
   font-size: var(--fs-1);
 }
-.bar-meta span { display: inline-flex; align-items: center; gap: var(--sp-2); white-space: nowrap; }
+.bar-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 26px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-md);
+  background: var(--panel-lembut);
+  white-space: nowrap;
+}
 .bar-meta i { color: var(--teks-lembut); }
 .bar-meta b { color: var(--teks); font-weight: 700; font-variant-numeric: tabular-nums; }
 .bar-alat { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-left: auto; }
@@ -304,7 +349,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--panel);
+  background: var(--rail);
   border-right: 1px solid var(--garis);
   font-size: var(--fs-2);
 }
@@ -314,41 +359,48 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-3) var(--sp-5);
-  border-bottom: 1px solid var(--garis);
+  min-height: 54px;
+  padding: 0 var(--sp-5);
 }
 .pohon-kepala h2 {
   margin: 0;
   font-size: var(--fs-1);
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--teks-lembut);
+  color: var(--teks);
 }
 .pohon-kepala-alat { display: flex; align-items: center; gap: var(--sp-2); }
 .pohon-kecil { display: none; }
-.pohon-isi { flex: 1 1 auto; overflow: auto; padding: var(--sp-2) var(--sp-3) var(--sp-5); }
+.pohon-isi { flex: 1 1 auto; overflow: auto; padding: 0 var(--sp-3) var(--sp-3); }
 .pohon-grup { margin-top: var(--sp-3); }
 .pohon-grup:first-child { margin-top: 0; }
 .pohon-grup h3 {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--sp-3);
-  min-height: var(--baris-tinggi);
+  min-height: calc(var(--kontrol-tinggi) + var(--sp-2));
   margin: 0 0 var(--sp-1);
   padding: 0 var(--sp-2);
+  background: var(--rail);
+  border-radius: var(--r-md);
   font-size: var(--fs-1);
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
-  color: var(--grup-warna, var(--teks-lembut));
+  /* Warna grup dipakai apa adanya, sesuai aturan skala di kepala berkas: hue ke-12
+     terlemah tetap 5,06 terhadap rel terang, jadi lantai 4,5 tidak butuh varian teks. */
+  color: var(--grup-warna, var(--teks-baris));
 }
 .pohon-grup-tombol {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
   width: 100%;
-  min-height: var(--baris-tinggi);
+  min-height: calc(var(--kontrol-tinggi) + var(--sp-2));
   padding: 0 var(--sp-1);
   background: none;
   border: 0;
@@ -374,14 +426,14 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .pohon-pilih {
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--sp-3);
   width: 100%;
-  min-height: var(--baris-tinggi);
-  padding: 0 var(--sp-2);
+  min-height: var(--kontrol-tinggi);
+  padding: 0 var(--sp-5) 0 var(--sp-4);
   background: none;
   border: 0;
   border-radius: var(--r-md);
-  color: var(--teks);
+  color: var(--teks-baris);
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -390,8 +442,16 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
    ikut dihitung sebagai lebar minimum kolom dan sidebar menolak menyusut ke basisnya
    (terukur 321px terhadap basis 286px). */
 .pohon-nama { flex: 1 1 0; width: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pohon-pilih:hover, .pohon-sub:hover { background: var(--panel-lembut); }
-.pohon-pilih.terpilih, .pohon-sub.terpilih { background: var(--aksen-lembut); color: var(--aksen-tegas); font-weight: 600; }
+.pohon-pilih:hover, .pohon-sub:hover { background: var(--panel-lembut); color: var(--teks); }
+/* Baris terpilih mengikuti kartu terpilih di kanvas: satu langkah naik ke permukaan
+   yang lebih terang dari relnya, plus rambut setebal satu piksel. Tidak ada sapuan
+   warna aksen — itu yang membuat satu baris berteriak di tengah daftar netral. */
+.pohon-pilih.terpilih, .pohon-sub.terpilih {
+  background: var(--rel);
+  color: var(--teks);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px var(--garis);
+}
 .pohon-detail { margin: 0 0 var(--sp-1) var(--sp-4); padding-left: var(--sp-3); border-left: 1px solid var(--garis); }
 .pohon-detail ul { list-style: none; margin: 0 0 var(--sp-3); padding-left: var(--sp-1); }
 .pohon-detail summary {
@@ -402,12 +462,15 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   cursor: pointer;
   list-style: none;
   padding: 0 var(--sp-2);
-  color: var(--teks-lembut);
+  color: var(--teks-baris);
   font-size: var(--fs-1);
   border-radius: var(--r-md);
 }
 .pohon-detail summary::-webkit-details-marker { display: none; }
 .pohon-detail summary:hover { background: var(--panel-lembut); }
+/* Tanpa satuan, baris ini hanya chevron dan angka telanjang yang terbaca sebagai baris rusak. */
+.pohon-detail summary .pohon-angka { color: var(--teks); font-weight: 600; }
+.pohon-detail summary .pohon-satuan { color: var(--teks-baris); }
 .pohon-detail summary .chevron { transition: transform 0.12s linear; }
 .pohon-detail[open] > summary .chevron { transform: rotate(90deg); }
 .pohon-angka { font-variant-numeric: tabular-nums; }
@@ -421,14 +484,14 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   background: none;
   border: 0;
   border-radius: var(--r-md);
-  color: var(--teks-lembut);
+  color: var(--teks-baris);
   font: inherit;
   font-size: var(--fs-2);
   text-align: left;
   cursor: pointer;
 }
 .pohon .redup { opacity: var(--redup); }
-.status-titik { flex: 0 0 0.45rem; width: 0.45rem; height: 0.45rem; border-radius: 50%; display: inline-block; }
+.status-titik { flex: 0 0 6px; width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
 .pohon-kaki {
   flex: 0 0 auto;
   display: flex;
@@ -501,24 +564,25 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   font-weight: 600;
 }
 .kunci .ikon { width: 1rem; height: 1rem; }
-.bagian { margin-top: var(--sp-4); border: 1px solid var(--garis); border-radius: var(--r-lg); }
+/* Panel inspektur datar: dipisah rambut di atas, bukan kotak berbingkai. */
+.bagian { margin-top: 0; border: 0; border-top: 1px solid var(--garis); border-radius: 0; }
 .bagian > summary {
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
+  min-height: 48px;
+  padding: var(--sp-3) 0;
   cursor: pointer;
   list-style: none;
-  color: var(--teks-lembut);
-  font-size: var(--fs-2);
+  color: var(--teks);
+  font-size: var(--fs-3);
   font-weight: 600;
 }
 .bagian > summary::-webkit-details-marker { display: none; }
-.bagian > summary:hover { background: var(--panel-lembut); }
 .bagian > summary span { flex: 1 1 auto; }
 .bagian > summary .chevron { width: 0.85rem; height: 0.85rem; transition: transform 0.12s linear; }
 .bagian[open] > summary .chevron { transform: rotate(90deg); }
-.bagian-isi { padding: var(--sp-1) var(--sp-5) var(--sp-5); border-top: 1px solid var(--garis); }
+.bagian-isi { padding: var(--sp-1) 0 var(--sp-5); }
 .bagian-sub {
   margin: var(--sp-3) 0 var(--sp-2);
   color: var(--teks-lembut);
@@ -613,15 +677,17 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .garis-legenda { width: 1.1rem; border-top: 2px solid currentColor; display: inline-block; }
 
 .cari { position: relative; display: block; padding: var(--sp-4) var(--sp-5) var(--sp-3); }
-.cari i { position: absolute; left: var(--sp-5); top: var(--sp-4); color: var(--teks-lembut); pointer-events: none; }
+/* Tengah vertikal dihitung dari tinggi masukan, bukan angka telanjang: kalau
+   --kontrol-tinggi atau tinggi masukan berubah, ikonnya ikut, tidak naik ke tepi atas. */
+.cari i { position: absolute; left: var(--sp-5); top: calc(var(--sp-4) + (var(--kontrol-tinggi) + var(--sp-2) - 1rem) / 2); color: var(--teks-lembut); pointer-events: none; }
 .cari input {
   width: 100%;
-  min-height: var(--kontrol-tinggi);
+  min-height: calc(var(--kontrol-tinggi) + var(--sp-2));
   padding: var(--sp-2) var(--sp-3) var(--sp-2) 1.9rem;
-  background: var(--bg);
+  background: var(--rel);
   color: var(--teks);
   border: 1px solid var(--garis);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   font: inherit;
   font-size: var(--fs-2);
 }
@@ -680,7 +746,10 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .hasil .ikon { width: 0.95rem; height: 0.95rem; }
 .hasil b { color: var(--teks); font-weight: 700; font-variant-numeric: tabular-nums; }
 .hasil span { color: var(--teks-lembut); }
-.pohon .hasil { padding-left: var(--sp-5); }
+/* Rel tidak memakai garis pemisah di bawah ringkasan: relnya sudah beda satu
+   langkah permukaan dari panel di kanan kanvas. */
+.pohon .hasil { padding-left: var(--sp-5); border-bottom: 0; color: var(--teks-baris); }
+.pohon .hasil span { color: var(--teks-baris); }
 
 #jejaring .node { cursor: pointer; }
 #jejaring .ikon { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
@@ -743,6 +812,9 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
     border-radius: var(--r-md);
     background: color-mix(in srgb, var(--grup-warna, var(--aksen)) var(--nuansa), transparent);
   }
+  /* Di rail kecil penanda terpilih sudah cincin aksen di sekeliling ikon. Cincang rambut
+     dari .terpilih penuh di atas menumpuk jadi dua bingkai di kotak 52px, jadi dimatikan. */
+  .pohon.kecil .pohon-pilih.terpilih, .pohon.kecil .pohon-sub.terpilih { background: none; box-shadow: none; }
   .pohon.kecil .pohon-pilih.terpilih .ikon-bungkus,
   .pohon.kecil .pohon-sub.terpilih .ikon-bungkus { outline: 2px solid var(--aksen); outline-offset: var(--sp-1); }
 }
@@ -806,16 +878,18 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .papan-tab {
   flex: 0 0 auto;
   display: flex;
-  gap: var(--sp-1);
+  gap: 0;
   margin-bottom: var(--sp-4);
-  padding: var(--sp-1);
-  background: var(--bg);
-  border: 1px solid var(--garis);
-  border-radius: var(--r-md);
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--garis);
+  border-radius: 0;
 }
 .papan-tab-tombol {
   flex: 1 1 0;
   min-width: 0;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -823,7 +897,7 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
   min-height: var(--kontrol-tinggi);
   padding: 0 var(--sp-2);
   border: 0;
-  border-radius: var(--r-sm);
+  border-radius: 0;
   background: transparent;
   color: var(--teks-lembut);
   font: inherit;
@@ -833,10 +907,22 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .papan-tab-tombol span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; }
 .papan-tab-tombol .papan-angka { flex: 0 0 auto; }
 .papan-tab-tombol.terpilih {
-  background: var(--panel);
-  box-shadow: inset 0 0 0 1px var(--garis);
-  color: var(--aksen-tegas);
+  background: none;
+  box-shadow: none;
+  color: var(--teks);
   font-weight: 600;
+}
+/* Garis bawah, bukan kotak: acuan pemilik menandai tab aktif dengan rambut 2px di
+   bawah label, bukan dengan pil putih di dalam bingkai. */
+.papan-tab-tombol.terpilih::after {
+  content: '';
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--r-sm);
+  background: var(--teks);
 }
 .papan-tab-tombol:focus-visible { outline: 2px solid var(--aksen-tegas); outline-offset: 2px; }
 /* Tingginya tidak boleh ikut isi. Selama daftar ini dibiarkan tumbuh, berpindah dari tab

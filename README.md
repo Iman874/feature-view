@@ -168,7 +168,7 @@ ada yang ingat-ingat:
 - `nama_contoh_tidak_muncul_di_render_js` — aturan yang sama dijalankan terhadap dataset contoh,
   sehingga alat yang berdiri sendiri tetap punya penjaga yang nyata.
 - `bentuk_terdaftar_membaca_kamus_ikon_dari_sumber_js` — kamus bentuk harus benar-benar terbaca dari
-  `render.js` (48 nama). Kalau parsing kamus rusak, validasi ikon di `check` berubah jadi no-op dan
+  `render.js` (49 nama). Kalau parsing kamus rusak, validasi ikon di `check` berubah jadi no-op dan
   tes inilah yang menyalakannya.
 - `penjaga_merek_membuang_isi_kerangka_bukan_kodenya` — memastikan potongan kerangka `init` benar-benar
   dibuang dari sapuan merek, dan bahwa literal yang ditanam di luar kerangka tetap tertangkap.
@@ -191,7 +191,7 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 | `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status, papan pekerjaan | 166 | 0 |
 | `src/manifest.rs` | baca +urai delapan TSV jadi `Model`, cap isi manifest | 834 | 10 |
 | `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 788 | 13 |
-| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 893 | 8 |
+| `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 907 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
 | `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 373 | 11 |

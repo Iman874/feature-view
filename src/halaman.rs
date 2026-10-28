@@ -170,9 +170,23 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
     let _ = writeln!(out, "<div class=\"app\">");
     let _ = writeln!(out, "<header class=\"bar\">");
     let _ = writeln!(out, "<div class=\"bar-merek\">");
-    let _ = writeln!(out, "<h1>{merek}</h1>");
+    // Inisial untuk kotak merek di CSS (content: attr(...)). Diambil dari nilai mentah
+    // config.merek, bukan dari `merek` yang sudah diesc, supaya huruf pertamanya tidak
+    // bisa berupa '&' hasil entitas.
+    let inisial_huruf = config
+        .merek
+        .trim()
+        .chars()
+        .next()
+        .map(|c| c.to_uppercase().to_string())
+        .unwrap_or_default();
+    let inisial = esc(&inisial_huruf);
+    let _ = writeln!(out, "<h1 data-inisial=\"{inisial}\">{merek}</h1>");
     let _ = writeln!(
         out,
+        // Kata sumbu hanya lewat `title`, tidak ditulis sebagai teks: lima pil berlabel
+        // membuat header melengkung jadi dua baris bahkan di 1536px, dan tinggi header 56px
+        // adalah syarat tertulis.
         "<p class=\"bar-meta\"><span title=\"service\"><i data-ikon=\"layanan\"></i><b>{}</b></span><span title=\"aplikasi\"><i data-ikon=\"aplikasi\"></i><b>{}</b></span><span title=\"produk\"><i data-ikon=\"produk\"></i><b>{}</b></span><span title=\"sub-fitur\"><i data-ikon=\"subfitur\"></i><b>{}</b></span><span title=\"relasi\"><i data-ikon=\"relasi\"></i><b>{}</b></span></p>",
         model.services.len(),
         model.apps.len(),

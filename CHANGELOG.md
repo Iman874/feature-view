@@ -59,11 +59,51 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
    dipasang — penjaga `teks_baris_tidak_menahan_lebar_rail` sekarang mengikat tiga selector.
    Yang **tidak** diubah: renderer tetap SVG, font tetap lokal tanpa jaringan, tema tetap atribut
    `data-tema`, tidak ada `backdrop-filter`, dan tidak ada tes skala yang dilonggarkan.
+7. **Rel daftar dirapikan mengikuti acuan yang pemilik tempel.** Item 6 baru mengubah warna; bentuk
+   barisnya masih 24px dan terpilih masih sapuan hijau. Sekarang: rel memakai token peran baru
+   `--rail` dan baris terpilih `--rel`, yang sengaja **berlawanan urutan di kedua skema**
+   (terang netral-2 di belakang netral-1, gelap netral-1 di belakang netral-2) karena menunjuk
+   `--panel` saja membuat kartu terpilih justru terlihat cekung di skema gelap. Baris pohon naik ke
+   `--kontrol-tinggi` 30px, judul grup ke 34px dan jadi `position: sticky` berlatar rel, titik status
+   0,45rem -> 6px, judul rel kehilangan garis bawahnya, dan kolom teks baris memakai `--teks-baris`
+   (`color-mix` 80% `--teks-lembut` + 20% `--teks`) karena `--teks-lembut` murni hanya 4,28 terhadap
+   rel baru — di bawah lantai 4,5. Terpilih jadi `--rel` + rambut `--garis` 1px + `--teks`, tanpa
+   warna aksen. Kolom pencarian ikut naik ke `--rel`, radius `--r-lg`, tinggi 34px, dan kaca pembesarnya
+   ternyata menempel di tepi atas (pusat ikon 130 terhadap pusat kolom 139) — sekarang diturunkan dari
+   tinggi kolom, bukan angka telanjang. Baris disclosure yang tadinya cuma chevron dan angka telanjang
+   ("3") sekarang "3 sub-fitur" lewat span `.pohon-satuan`; angkanya tetap punya sendiri supaya
+   penghitungan ulang saat menyaring tidak ikut berubah. Di rail kecil penanda terpilih tetap cincin
+   aksen 2px, dan rambut baris penuh sengaja dimatikan di sana supaya tidak jadi dua bingkai.
+   Terukur setelahnya, lantai 4,5 lolos di semua teks rel: terang judul rel 14,69 / ringkasan 5,47 /
+   baris 5,47 / judul grup min 5,21 / disclosure 5,47; gelap 15,37 / 8,77 / 8,77 / 7,33 / 8,77.
+   Latar terpilih terhadap rel 1,07 (terang) dan 1,05 (gelap) — itu langkah permukaan, bukan teks, dan
+   memang begitu acuan aslinya. Dua kesalahan ukur saya sendiri ikut dicatat: `getComputedStyle`
+   mengembalikan `color-mix` sebagai `color(srgb 0..1)` sehingga pembaca 0..255 memuntahkan 19,37 dan
+   1,14 yang tidak masuk akal, dan memindah atribut `data-tema` langsung **tidak** menjalankan kode yang
+   menghitung ulang hue grup dari `--sat`/`--terang`, jadi sempat muncul kontras palsu 3,85. Yang
+   pertama ditutup dengan komposit lewat canvas, yang kedua dengan menekan tombol tema sungguhan.
+8. **Empat blok lain ikut disamakan, dan satu percobaan ditarik kembali.** Putaran 7 baru menyentuh
+   rel; pemilik membalas dengan "tampilannya gak mirip sama sekali". Karena berkas CSS acuan tidak ada
+   di disk, acuan itu **dirender sendiri** (HTML kerangka + `reset.css` supaya bingkai tombol bawaan
+   browser tidak menyamar jadi gaya acuan) lalu dibandingkan kepala-kepala dengan halaman alat pada
+   1280x860 dan 1536x860. Empat selisih ditutup: kotak merek 26x26 `--teks` dengan huruf pertama nama
+   dari `config.merek` (dilewat sebagai `data-inisial`, dihitung dari nilai mentah sebelum `esc` supaya
+   huruf pertamanya tidak bisa berupa `&`), angka header jadi pil berlatar `--panel-lembut` 26px,
+   tab papan turun dari kotak berbingkai ke garis bawah 2px, dan panel inspektur jadi datar -- rambut
+   di atas saja, tanpa bingkai dan tanpa radius. Satu selisih **dibiarkan**: acuan masih menyimpan
+   kartu legenda Relasi/Status di sidebar, dan memindahkannya ke popup `i` adalah perintah tertulis
+   owner pada putaran 6, jadi yang dimenangkan adalah perintah itu. Satu percobaan ditarik di tengah
+   jalan: label sumbu ("3 produk", "33 sub-fitur", ...) ikut dipasang di pil, lalu diukur -- header
+   melengkung jadi dua baris bahkan di 1536px, melanggar syarat tinggi 56px, jadi kata itu kembali
+   ke atribut `title` saja. Terukur setelahnya: tinggi `.bar` 56px pada satu baris di 1536px,
+   `data-inisial="M"`, kotak 26x26 radius 6, pil 26px, garis bawah tab 2px, panel `border-top` saja.
+   Suite tetap 91 lulus; dua penjaga menyala di jalan dan keduanya benar -- satu radius 2px di luar
+   tangga dan satu hitungan baris `halaman.rs` di README yang tertinggal 893 -> 907.
 
 **Kosakata tetap data.** Tidak ada nama status tugas yang masuk ke kode: `status_tugas` dan
 `judul_papan` dibaca dari `config.tsv` dan keduanya opsional, jadi repo yang belum memakai papan
 berperilaku persis seperti sebelum perubahan ini (terukur: `check --root contoh` tetap exit 0 tanpa
-`tugas.tsv`). Angka: `cargo test` 81 -> **90 lulus**, clippy nol, `node --check` lulus.
+`tugas.tsv`). Angka: `cargo test` 81 -> **91 lulus**, clippy nol, `node --check` lulus.
 
 ### 0.2.0 — palet, skala, dan saklar tema (2026-10-26)
 
