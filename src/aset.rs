@@ -264,6 +264,19 @@ mod tests {
     }
 
     #[test]
+    fn info_jumlah_ikut_disembunyikan_saat_rail_diperkecil() {
+        // Sejak 0.4.4 lima pil jumlah duduk di rel kiri, bukan lagi di header. Pil itu teks:
+        // kalau ia tidak ikut disembunyikan, rail 52px menolak menyusut persis seperti papan
+        // di penjaga di atas. Tab rel kena aturan yang sama dan ikut diperiksa di sini.
+        for pilihan in [".pohon.kecil .sisi-info", ".pohon.kecil .sisi-tab-tombol"] {
+            assert!(
+                disembunyikan(pilihan),
+                "{pilihan} tidak ikut disembunyikan, jadi rail kecil tidak bisa menyusut ke 52px"
+            );
+        }
+    }
+
+    #[test]
     fn mode_cip_menyembunyikan_tanda_progres() {
         // Pada mode cip kartu dirender 54 unit lebarnya sementara tata letaknya masih memakai
         // lebar kartu penuh; tanda persen yang menempel di tepi kanan kartu lama ikut tertinggal
@@ -291,10 +304,14 @@ mod tests {
 
     #[test]
     fn papan_tidak_menambah_tinggi_saat_daftar_penuh() {
-        // Panel yang tingginya ikut isi merampas ruang blok di atasnya: tab selesai dengan
-        // tiga belas baris menaikkan panel sekitar 1.100px dan daftar struktur hilang dari
-        // layar. Kontraknya dua — panel tidak boleh ikut tumbuh, dan daftarnya wajib punya
-        // langit-langit sendiri.
+        // Panel yang tingginya ikut isi merampas ruang blok di atasnya: sebelum 0.4.4 tab
+        // selesai dengan tiga belas baris menaikkan panel sekitar 1.100px dan daftar struktur
+        // hilang dari layar. Sekarang kedua daftar bergantian lewat tab, jadi janji yang sama
+        // dijaga mekanisme yang berbeda: panel HANYA boleh setinggi kolomnya (flex 1 + min-height 0
+        // di dalam kolom yang dipatok `.app { height: 100dvh }`), dan daftarnya sendiri yang
+        // menggulir. Langit-langit angka 168px sengaja tidak dipertahankan: kolom sudah
+        // membatasi lebih keras daripada angka tetap, dan angka itu tidak pernah bisa tumbuh
+        // bersama tinggi jendela.
         let punya = |teks: &str, properti: &str, nilai: &str| {
             teks.split(';').any(|d| match d.split_once(':') {
                 Some((k, v)) => k.trim() == properti && v.trim() == nilai,
@@ -302,16 +319,25 @@ mod tests {
             })
         };
         let panel = deklarasi_dari(".papan");
+        for (properti, nilai) in [("flex", "1 1 auto"), ("min-height", "0")] {
+            assert!(
+                punya(&panel, properti, nilai),
+                ".papan tidak lagi `{properti}: {nilai}`, jadi tingginya bisa ikut jumlah baris: {panel}"
+            );
+        }
+        let daftar = deklarasi_dari(".papan-isi");
+        for (properti, nilai) in [("flex", "1 1 auto"), ("min-height", "0"), ("overflow", "auto")] {
+            assert!(
+                punya(&daftar, properti, nilai),
+                ".papan-isi tidak lagi `{properti}: {nilai}`, jadi daftar panjang mendorong panel keluar kolom: {daftar}"
+            );
+        }
+        // Dua panel rel berbagi kolom yang sama; kalau salah satu tidak min-height 0,
+        // `flex-shrink` tidak bisa menembus ukuran isinya dan rail melebar.
+        let struktur = deklarasi_dari(".sisi-panel");
         assert!(
-            punya(&panel, "flex", "0 0 auto"),
-            ".papan tidak lagi `flex: 0 0 auto`, jadi tingginya ikut jumlah baris: {panel}"
-        );
-        let langit = deklarasi_dari(".papan-isi")
-            .split(';')
-            .any(|d| matches!(d.split_once(':'), Some((k, _)) if k.trim() == "max-height"));
-        assert!(
-            langit,
-            ".papan-isi kehilangan langit-langit, jadi daftar panjang mendorong blok lain keluar layar"
+            punya(&struktur, "min-height", "0"),
+            ".sisi-panel kehilangan `min-height: 0`, jadi panel struktur mendorong papan keluar layar: {struktur}"
         );
     }
 
@@ -330,7 +356,7 @@ mod tests {
                     None => false,
                 })
         };
-        for selektor in [".papan-nama", ".pohon-nama", ".pohon-grup h3 span"] {
+        for selektor in [".papan-nama", ".pohon-nama", ".pohon-grup h3 span", ".sisi-tab-tombol span"] {
             assert!(
                 punya_lebar_nol(selektor),
                 "{selektor} tidak lagi menyetel `width: 0`, jadi teks nowrap memaksa rail melebar"

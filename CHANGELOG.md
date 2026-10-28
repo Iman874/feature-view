@@ -9,6 +9,58 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ## [Changelog]
 
+### Belum dirilis — rel kiri bertab dan alat header jadi satu menu (2026-10-28)
+
+**Enam perubahan, semuanya terukur di Chrome pada halaman dataset pemakai (1280/820/420px, kedua skema).**
+
+1. **Rel kiri punya satu baris tab.** Daftar struktur dan papan pekerjaan tidak lagi bertumpuk
+   vertikal: `#panel-struktur` dan `#papan` bergantian lewat tiga tab (`Produk|Pekerjaan 4|
+   Selesai 17`). Tab pertama memakai nama sumbu aktif, dua berikutnya status papan dari
+   `config.tsv`. Perawatannya sama dengan tab yang disetujui 0.4.3: rambut 1px di bawah baris,
+   garis bawah 2px untuk terpilih. Terukur: baris 54px, kolom tetap 286px, `overflowX` false.
+2. **Lima pil jumlah turun dari header ke bawah tab.** Angka service/aplikasi/produk/sub-fitur/
+   relasi adalah properti rel, bukan properti merek. Terukur: `header.bar` nol pil, lima pil +
+   lima ikon di `#sisi-info` pada y 110..153, tepat di bawah baris tab (y 56..110).
+3. **Satu pemilih panel menggantikan dua.** `pilihSisi(nama)` memilih panel; `aturDaftarPapan(nama)`
+   hanya memilih daftar di dalamnya, supaya papan yang baru dibangun tidak mencuri panel dari
+   struktur. Kunci simpanan sesi berganti `papan` -> `sisi`. Target yang tabnya tidak tersedia
+   jatuh ke struktur, bukan ke tab berikutnya.
+4. **Lima tombol alat kanan atas jadi satu titik tiga.** Popup `#menu-alat-isi` (`role=menu`)
+   berisi tema, generate ulang, hapus hasil, muat data, setel ulang — masing-masing 30px,
+   berikon berlabel, rata kanan ke pemicunya, dan **membalik ke rata kiri** kalau ruang di
+   kanannya tidak cukup (terukur di 820px: tanpa flip kotaknya duduk di x = -131, keluar jendela).
+   Escape menutup dan mengembalikan fokus ke pemicu; ArrowDown/Up/Home/End berpindah item; klik
+   di luar menutup. Segment sumbu dan dua penyaring sengaja tinggal di header.
+5. **Ikon dipilih ulang dari bentuk yang dirender.** `muat-data` pindah dari `folder` ke `unduh`,
+   `reset` dari `perbarui` ke `balik` (cermin `perbarui`, supaya dua aksi berbeda tidak memakai
+   satu bentuk), tema dapat `rembulan`, pemicunya `menu` (tiga titik terisi). Kamus bentuk
+   49 -> 52.
+6. **Dua kontras di skema terang dinaikkan ke atas lantai 4,5.** Teks tab tidak terpilih 4,28 ->
+   5,47 dan ikon dalam pil 4,02 -> 5,15 setelah keduanya pindah ke `--teks-baris` — aturan yang
+   sama yang sudah dipakai baris pohon sejak 0.4.3, dan yang sama pula yang sempat terlewat di
+   tab papan lama. Gelap: 8,77 dan 7,58.
+
+**Kontrak tampilan yang ditulis ulang (bukan dilonggarkan).** `papan_tidak_menambah_tinggi_saat_daftar_penuh`
+dulu menuntut `flex: 0 0 auto` + `max-height` angka; sekarang menuntut `flex: 1 1 auto` +
+`min-height: 0` di `.papan`, `.sisi-panel`, dan `overflow: auto` di `.papan-isi` — janji yang sama
+("tinggi panel tidak pernah ikut isi") dengan mekanisme yang berbeda, karena yang membatasi kini
+kolomnya (`.app { height: 100dvh }`), bukan angka 168px. Terbukti di layar: tab Selesai dengan 17
+baris (isi 1.618px) tetap di dalam rel 804px dan daftarnya yang menggulir. Penjaga baru
+`info_jumlah_ikut_disembunyikan_saat_rail_diperkecil` menuntut `.sisi-info` dan `.sisi-tab-tombol`
+ikut daftar sembunyi rail; `teks_baris_tidak_menahan_lebar_rail` kini mengikat empat selector
+termasuk `.sisi-tab-tombol span`.
+
+**Yang ditemukan pengukuran, belum diperbaiki.** Tombol `#kecil-pohon` tetap terlihat di dalam laci
+rel pada lebar <= 1180px, padahal mode kecil tidak berarti di sana. Ini cacat lama dari urutan
+spesifisitas (`.pohon-kecil { display: none }` kalah oleh `.tombol { display: inline-flex }` yang
+ditulis belakangan), bukan bagian rilis ini, dan tidak disentuh.
+
+**Angka akhir.** Suite alat 92 lulus (91 -> 92, satu penjaga baru), clippy nol, `check --root .`
+exit 0, `audit --root .` 33 hijau-isi / 0 kuning / 0 merah. Rail kecil 286px <-> 60px, laci 320px
+terbuka dan tertutup lewat Escape, `overflowX` false di 1280/820/420. Halaman root 206.595 byte,
+halaman contoh 167.076 byte.
+
+
 ### Belum dirilis — papan pekerjaan dan lajur yang menahan isinya (2026-10-27)
 
 **Enam perubahan, semuanya terukur di halaman dataset pemakai.**

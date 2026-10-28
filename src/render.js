@@ -46,7 +46,6 @@
   // lagi di jejak panel detail: satu konsep tidak boleh punya dua nama di layar.
   var NAMA_BERJALAN = (data.papanJudul || '').trim().split(/\s+/)[0] || 'Papan';
   var papan = document.getElementById('papan');
-  var papanTab = document.getElementById('papan-tab');
   var papanIsi = document.getElementById('papan-isi');
   var papanSelesaiIsi = document.getElementById('papan-selesai-isi');
   var papanTabBerjalan = document.getElementById('papan-tab-berjalan');
@@ -55,7 +54,60 @@
   var papanTabSelesaiNama = document.getElementById('papan-tab-selesai-nama');
   var papanJumlahBerjalan = document.getElementById('papan-jumlah-berjalan');
   var papanJumlahSelesai = document.getElementById('papan-jumlah-selesai');
-  var papanTabAktif = 'berjalan';
+  // Rel kiri punya satu baris tab dan satu panel yang tampil pada satu waktu. Nama panelnya
+  // `struktur|berjalan|selesai`; `struktur` selalu ada, dua lainnya hanya kalau `tugas.tsv` ada.
+  var sisiTab = document.getElementById('sisi-tab');
+  var tabStruktur = document.getElementById('tab-struktur');
+  var panelStruktur = document.getElementById('panel-struktur');
+  var SISI_STRUKTUR = 'struktur';
+  var sisiPanelAktif = SISI_STRUKTUR;
+
+  function tabSisiTersedia() {
+    var daftar = [];
+    if (tabStruktur) { daftar.push(tabStruktur); }
+    if (papanTabBerjalan && !papanTabBerjalan.hidden) { daftar.push(papanTabBerjalan); }
+    if (papanTabSelesai && !papanTabSelesai.hidden) { daftar.push(papanTabSelesai); }
+    return daftar;
+  }
+
+  function kunciTabSisi(tombol) {
+    if (tombol === papanTabBerjalan) { return 'berjalan'; }
+    if (tombol === papanTabSelesai) { return 'selesai'; }
+    return SISI_STRUKTUR;
+  }
+
+  // Daftar mana yang terlihat di dalam panel papan. Terpisah dari `pilihSisi` supaya papan
+  // yang baru dibangun tidak mencuri panel dari struktur.
+  function aturDaftarPapan(nama) {
+    var selesai = nama === 'selesai';
+    if (papanIsi) { papanIsi.hidden = selesai; }
+    if (papanSelesaiIsi) { papanSelesaiIsi.hidden = !selesai; }
+  }
+
+  // Satu-satunya pemilih panel rel kiri. Tujuan yang tabnya tidak tersedia jatuh ke
+  // struktur, bukan ke tab berikutnya: null berarti tidak ada akses, bukan semua akses.
+  function pilihSisi(nama) {
+    var ada = tabSisiTersedia().map(kunciTabSisi);
+    var tujuan = ada.indexOf(nama) >= 0 ? nama : SISI_STRUKTUR;
+    sisiPanelAktif = tujuan;
+    [tabStruktur, papanTabBerjalan, papanTabSelesai].forEach(function (tombol) {
+      if (!tombol) { return; }
+      var dipilih = kunciTabSisi(tombol) === tujuan;
+      tombol.classList.toggle('terpilih', dipilih);
+      tombol.setAttribute('aria-selected', dipilih ? 'true' : 'false');
+      tombol.tabIndex = dipilih ? 0 : -1;
+    });
+    if (panelStruktur) { panelStruktur.hidden = tujuan !== SISI_STRUKTUR; }
+    if (papan) { papan.hidden = tujuan === SISI_STRUKTUR; }
+    aturDaftarPapan(tujuan === 'selesai' ? 'selesai' : 'berjalan');
+  }
+
+  // Nama sumbu aktif dipakai label tab pertama. `title` ikut ditulis karena label
+  // terpanjang ("Implementasi") terpangkas elipsis pada kolom 286px.
+  function setJudulSisi(teks) {
+    if (pohonJudul) { pohonJudul.textContent = teks; }
+    if (tabStruktur) { tabStruktur.title = teks; }
+  }
 
   function buatBarisPapan(t) {
     var baris = document.createElement('div');
@@ -103,26 +155,6 @@
     return baris;
   }
 
-  function pilihTabPapan(nama) {
-    if (papanTabBerjalan && papanTabSelesai && papanTabBerjalan.hidden && papanTabSelesai.hidden) return;
-    var selesai = nama === 'selesai';
-    if (selesai && papanTabSelesai && papanTabSelesai.hidden) { selesai = false; }
-    if (!selesai && papanTabBerjalan && papanTabBerjalan.hidden) { selesai = true; }
-    papanTabAktif = selesai ? 'selesai' : 'berjalan';
-    if (papanTabBerjalan) {
-      papanTabBerjalan.classList.toggle('terpilih', !selesai);
-      papanTabBerjalan.setAttribute('aria-selected', selesai ? 'false' : 'true');
-      papanTabBerjalan.tabIndex = selesai ? -1 : 0;
-    }
-    if (papanTabSelesai) {
-      papanTabSelesai.classList.toggle('terpilih', selesai);
-      papanTabSelesai.setAttribute('aria-selected', selesai ? 'true' : 'false');
-      papanTabSelesai.tabIndex = selesai ? 0 : -1;
-    }
-    if (papanIsi) { papanIsi.hidden = selesai; }
-    if (papanSelesaiIsi) { papanSelesaiIsi.hidden = !selesai; }
-  }
-
   function bangunPapan() {
     if (!papan || !papanIsi || !papanSelesaiIsi || !papanTabBerjalan || !papanTabSelesai || !data.tugas || !data.tugas.length || !data.papanJudul) return;
     papanTabBerjalanNama.textContent = NAMA_BERJALAN;
@@ -148,8 +180,9 @@
     papanTabSelesai.hidden = selesai === 0;
     papanTabBerjalan.setAttribute('aria-label', data.papanJudul + ' (' + berjalan + ')');
     papanTabSelesai.setAttribute('aria-label', STATUS_SELESAI + ' (' + selesai + ')');
-    papan.hidden = false;
-    pilihTabPapan(berjalan === 0 && selesai > 0 ? 'selesai' : 'berjalan');
+    // Membangun papan TIDAK memindahkan panel: struktur tetap titik masuk halaman, dan
+    // pilihan tab yang tersimpan dipulihkan kemudian oleh pulihkanTampilan().
+    aturDaftarPapan(berjalan === 0 && selesai > 0 ? 'selesai' : 'berjalan');
   }
   function pasangDetailPapan(isi) {
     if (!isi) return;
@@ -162,18 +195,18 @@
   pasangDetailPapan(papanIsi);
   pasangDetailPapan(papanSelesaiIsi);
 
-  function pasangTabPapan() {
-    if (!papanTab) { return; }
-    papanTab.addEventListener('click', function (event) {
-      var tombol = event.target.closest ? event.target.closest('.papan-tab-tombol') : null;
+  function pasangTabSisi() {
+    if (!sisiTab) { return; }
+    sisiTab.addEventListener('click', function (event) {
+      var tombol = event.target.closest ? event.target.closest('.sisi-tab-tombol') : null;
       if (!tombol) { return; }
-      pilihTabPapan(tombol.id === 'papan-tab-selesai' ? 'selesai' : 'berjalan');
+      pilihSisi(kunciTabSisi(tombol));
       simpanTampilan();
     });
-    papanTab.addEventListener('keydown', function (event) {
-      var tombol = event.target.closest ? event.target.closest('.papan-tab-tombol') : null;
+    sisiTab.addEventListener('keydown', function (event) {
+      var tombol = event.target.closest ? event.target.closest('.sisi-tab-tombol') : null;
       if (!tombol) { return; }
-      var daftar = [papanTabBerjalan, papanTabSelesai].filter(function (t) { return t && !t.hidden; });
+      var daftar = tabSisiTersedia();
       if (daftar.length < 2) { return; }
       var posisi = daftar.indexOf(tombol);
       var tujuan = null;
@@ -184,11 +217,11 @@
       if (!tujuan) { return; }
       event.preventDefault();
       tujuan.focus();
-      pilihTabPapan(tujuan.id === 'papan-tab-selesai' ? 'selesai' : 'berjalan');
+      pilihSisi(kunciTabSisi(tujuan));
       simpanTampilan();
     });
   }
-  pasangTabPapan();
+  pasangTabSisi();
   var SKALA_MIN = 0.62;
   // Di bawah skala ini teks kartu toh tidak terbaca (21 px x 0,45 = 9,4 px), jadi
   // kartu ditampilkan sebagai cip saja.
@@ -325,6 +358,7 @@
     struktur: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15"/>',
     tutup: '<path d="M6 6l12 12M18 6L6 18"/>',
     info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11.2v5.3"/><path d="M12 7.9h.01"/>',
+    menu: '<circle cx="12" cy="5.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="18.6" r="1.7" fill="currentColor" stroke="none"/>',
     produk: '<path d="M12 3.5 4.5 7v10L12 20.5l7.5-3.5V7z"/><path d="M4.5 7 12 10.5 19.5 7M12 10.5v10"/>',
     implementasi: '<rect x="3.5" y="4.5" width="17" height="6" rx="2"/><rect x="3.5" y="13.5" width="17" height="6" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
     layanan: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.5h17M7 7h.01"/>',
@@ -354,6 +388,10 @@
     unggah: '<path d="M12 16.5V5.5M7.5 10 12 5.5 16.5 10"/><path d="M4.5 19.5h15"/>',
     unduh: '<path d="M12 5.5v11M7.5 12 12 16.5 16.5 12"/><path d="M4.5 19.5h15"/>',
     perbarui: '<path d="M19.5 12a7.5 7.5 0 1 1-2.6-5.7"/><path d="M19.5 4.5V9H15"/>',
+    // `balik` adalah cermin `perbarui` (x -> 24 - x): dua panah melingkar yang berlawanan
+    // arah tidak boleh dipakai untuk dua aksi yang berbeda maknanya di baris yang sama.
+    balik: '<path d="M4.5 12a7.5 7.5 0 1 0 2.6-5.7"/><path d="M4.5 4.5V9H9"/>',
+    rembulan: '<path d="M20.2 14.1A8.6 8.6 0 1 1 9.9 3.8a7.4 7.4 0 0 0 10.3 10.3z"/>',
     buang: '<path d="M4.5 7h15M9 4.5h6M6.5 7l.9 12.5h9.2L17.5 7"/><path d="M10 10.5v6M14 10.5v6"/>',
     jam: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3.5 2"/>',
     ringkas: '<path d="M9 5.5v3.5H5.5M15 5.5v3.5h3.5M9 18.5V15H5.5M15 18.5V15h3.5"/><path d="M5.5 12h13"/>',
@@ -1566,7 +1604,7 @@
       service: state.service,
       query: state.query,
       pilih: detailTerakhir ? { kind: detailTerakhir.kind, id: detailTerakhir.id } : null,
-      papan: papanTabAktif,
+      sisi: sisiPanelAktif,
       view: { x: view.x, y: view.y, w: view.w, h: view.h },
       pohon: pohonTerbuka(),
       kecil: !!(pohon && pohon.classList.contains('kecil'))
@@ -1612,10 +1650,10 @@
     aktifkanMode(MODES.indexOf(butir.mode) >= 0 ? butir.mode : 'produk');
     if (butir.pohon) { aturPohon(true); }
     if (butir.kecil) { aturKecil(true); }
-    if (butir.papan === 'selesai' && papanSelesaiIsi && papanSelesaiIsi.children.length) {
-      pilihTabPapan('selesai');
-    } else if (butir.papan === 'berjalan' && papanIsi && papanIsi.children.length) {
-      pilihTabPapan('berjalan');
+    if (butir.sisi === 'selesai' && papanSelesaiIsi && papanSelesaiIsi.children.length) {
+      pilihSisi('selesai');
+    } else if (butir.sisi === 'berjalan' && papanIsi && papanIsi.children.length) {
+      pilihSisi('berjalan');
     }
     if (butir.pilih && butir.pilih.id) { tampilkanDetail(butir.pilih.kind, butir.pilih.id); }
     var v = butir.view;
@@ -1971,7 +2009,7 @@
     if (kind === 'tugas') {
       var t = byTugas[id];
       if (!t) { return; }
-      pilihTabPapan(t.status === STATUS_SELESAI ? 'selesai' : 'berjalan');
+      pilihSisi(t.status === STATUS_SELESAI ? 'selesai' : 'berjalan');
       var fitur = byFeature[t.subfitur];
       var namaFitur = fitur ? fitur.name : t.subfitur;
       panel.innerHTML =
@@ -2253,6 +2291,9 @@
   function aturKecil(kecil) {
     if (!pohon) { return; }
     pohon.classList.toggle('kecil', kecil);
+    // Rail 52px menyembunyikan kedua daftar, jadi panel dipaksa kembali ke struktur.
+    // Dibiarkan di tab pekerjaan berarti rel yang menyusut menampilkan kolom kosong.
+    if (kecil) { pilihSisi(SISI_STRUKTUR); }
     if (kecilPohon) {
       var label = kecil ? 'Perlebar struktur' : 'Perkecil struktur';
       kecilPohon.setAttribute('aria-label', label);
@@ -2320,8 +2361,67 @@
     });
   }
 
+  // --- menu alat: satu titik tiga di kanan atas header ---
+  // Lima aksi dulu berdiri sejajar dan tiga di antaranya berikon yang tidak menunjuk
+  // aksinya. Sekarang mereka daftar; pemicunya satu tombol. Ditutup lewat tiga jalan yang
+  // sama dengan popup legenda: pemicunya, klik di luar, dan Escape.
+  var tombolMenu = document.getElementById('tombol-menu');
+  var menuAlat = document.getElementById('menu-alat-isi');
+  function menuTerbuka() { return !!menuAlat && !menuAlat.hidden; }
+  function aturMenu(buka) {
+    if (!tombolMenu || !menuAlat) { return; }
+    menuAlat.hidden = !buka;
+    tombolMenu.setAttribute('aria-expanded', buka ? 'true' : 'false');
+    // Popup dirata-kanan ke pemicunya. Di layar sempit `bar-alat` membungkus jadi beberapa
+    // baris dan pemicunya bisa jatuh ke tepi kiri baris terakhir -- terukur di 820px:
+    // kotak 190px duduk di x = -131, keluar jendela. Kalau begitu jangkarnya dipindah
+    // ke tepi kiri pemicu. Diukur setiap dibuka, bukan sekali di kepala layar, karena
+    // jendela bisa diubah setelah popup sempat dibuka.
+    menuAlat.classList.remove('ke-kiri');
+    if (!buka) { return; }
+    if (menuAlat.getBoundingClientRect().left < 8) { menuAlat.classList.add('ke-kiri'); }
+  }
+  function itemMenu() {
+    var daftar = [];
+    if (!menuAlat) { return daftar; }
+    menuAlat.querySelectorAll('[role="menuitem"]').forEach(function (t) {
+      if (!t.hidden) { daftar.push(t); }
+    });
+    return daftar;
+  }
+  if (tombolMenu && menuAlat) {
+    tombolMenu.addEventListener('click', function (event) {
+      event.stopPropagation();
+      aturMenu(!menuTerbuka());
+    });
+    // Ditutup lewat gelembung, bukan lewat handler tiap aksi: itemnya bekerja dulu,
+    // popupnya menutup sesudah. Tidak ada satu pun aksi yang perlu tahu ada menu di atasnya.
+    menuAlat.addEventListener('click', function (event) {
+      if (event.target.closest && event.target.closest('[role="menuitem"]')) { aturMenu(false); }
+    });
+    menuAlat.addEventListener('keydown', function (event) {
+      var daftar = itemMenu();
+      if (!daftar.length) { return; }
+      var posisi = daftar.indexOf(document.activeElement);
+      var tujuan = null;
+      if (event.key === 'ArrowDown') { tujuan = daftar[(posisi + 1 + daftar.length) % daftar.length]; }
+      if (event.key === 'ArrowUp') { tujuan = daftar[(posisi - 1 + daftar.length) % daftar.length]; }
+      if (event.key === 'Home') { tujuan = daftar[0]; }
+      if (event.key === 'End') { tujuan = daftar[daftar.length - 1]; }
+      if (!tujuan) { return; }
+      event.preventDefault();
+      tujuan.focus();
+    });
+    document.addEventListener('click', function (event) {
+      if (!menuTerbuka()) { return; }
+      if (event.target.closest && event.target.closest('.menu-alat')) { return; }
+      aturMenu(false);
+    });
+  }
+
   document.addEventListener('keydown', function (event) {
     if (event.key !== 'Escape') { return; }
+    if (menuTerbuka()) { aturMenu(false); if (tombolMenu) { tombolMenu.focus(); } return; }
     if (legendaTerbuka()) { aturLegenda(false); if (tombolInfo) { tombolInfo.focus(); } return; }
     if (pohonTerbuka()) { aturPohon(false); return; }
     bersihkanFokus();
@@ -2451,7 +2551,7 @@
     var tertutupSebelum = grupTertutup();
     pohonIsi.innerHTML = '';
     if (state.mode === 'subfitur') {
-      pohonJudul.textContent = 'Sub-fitur';
+      setJudulSisi('Sub-fitur');
       data.services.forEach(function (s) {
         var subs = data.features.filter(function (f) { return f.service === s.key; });
         if (!subs.length) { return; }
@@ -2481,7 +2581,7 @@
       return;
     }
     if (state.mode === 'produk') {
-      pohonJudul.textContent = 'Produk';
+      setJudulSisi('Produk');
       var grupProduk = peta();
       var urutanAktor = [];
       data.products.forEach(function (p) {
@@ -2502,7 +2602,7 @@
         pohonIsi.appendChild(grup);
       });
     } else {
-      pohonJudul.textContent = 'Implementasi';
+      setJudulSisi('Implementasi');
       data.services.forEach(function (s) {
         var apps = data.apps.filter(function (a) { return a.service === s.key; });
         if (!apps.length) { return; }

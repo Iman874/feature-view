@@ -182,18 +182,6 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         .unwrap_or_default();
     let inisial = esc(&inisial_huruf);
     let _ = writeln!(out, "<h1 data-inisial=\"{inisial}\">{merek}</h1>");
-    let _ = writeln!(
-        out,
-        // Kata sumbu hanya lewat `title`, tidak ditulis sebagai teks: lima pil berlabel
-        // membuat header melengkung jadi dua baris bahkan di 1536px, dan tinggi header 56px
-        // adalah syarat tertulis.
-        "<p class=\"bar-meta\"><span title=\"service\"><i data-ikon=\"layanan\"></i><b>{}</b></span><span title=\"aplikasi\"><i data-ikon=\"aplikasi\"></i><b>{}</b></span><span title=\"produk\"><i data-ikon=\"produk\"></i><b>{}</b></span><span title=\"sub-fitur\"><i data-ikon=\"subfitur\"></i><b>{}</b></span><span title=\"relasi\"><i data-ikon=\"relasi\"></i><b>{}</b></span></p>",
-        model.services.len(),
-        model.apps.len(),
-        model.products.len(),
-        total,
-        model.edges.len()
-    );
     let _ = writeln!(out, "</div>");
     let _ = writeln!(out, "<div class=\"bar-alat\">");
     let _ = writeln!(out, "<div class=\"segmen\" role=\"group\" aria-label=\"Sumbu tampilan\">");
@@ -226,30 +214,39 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         );
     }
     let _ = writeln!(out, "</select></label>");
+    // Lima tombol aksi dulu berdiri sejajar di kanan atas dan tiga di antaranya berikon
+    // yang tidak menunjuk aksinya. Sekarang satu pemicu titik tiga membuka daftarnya.
+    // Yang TIDAK ikut masuk: segment sumbu dan dua penyaring — keduanya kontrol kerja
+    // harian, bukan aksi alat.
+    let _ = writeln!(out, "<div class=\"menu-alat\">");
+    let _ = writeln!(out, "<button type=\"button\" class=\"tombol ikon-saja\" id=\"tombol-menu\" aria-haspopup=\"true\" aria-expanded=\"false\" aria-controls=\"menu-alat-isi\" aria-label=\"Menu alat halaman\" title=\"Menu alat\"><i data-ikon=\"menu\"></i></button>");
+    let _ = writeln!(out, "<div class=\"menu-alat-isi\" id=\"menu-alat-isi\" role=\"menu\" aria-label=\"Alat halaman\" hidden>");
     // Saklar tema: labelnya ditulis render.js dari keadaan GELAP yang sebenarnya, jadi
-    // tombol ini tidak pernah menjanjikan tema yang sama dengan yang sedang tampil.
+    // item ini tidak pernah menjanjikan tema yang sama dengan yang sedang tampil.
     let _ = writeln!(
         out,
-        "<button type=\"button\" class=\"tombol\" id=\"tombol-tema\" data-aksi=\"tema\"><span>Gelap</span></button>"
+        "<button type=\"button\" class=\"tombol\" id=\"tombol-tema\" role=\"menuitem\" data-aksi=\"tema\"><i data-ikon=\"rembulan\"></i><span>Gelap</span></button>"
     );
     // Dua aksi alat, keduanya lahir dalam keadaan hidden: halaman dari disk tidak boleh
     // menawarkan tombol yang toh tidak bisa dijalankan browser.
     let _ = writeln!(
         out,
-        "<button type=\"button\" class=\"tombol ikon-saja\" id=\"generate-ulang\" data-aksi=\"generate-ulang\" aria-label=\"Jalankan tools generate dan tulis index.html\" title=\"Generate ulang\" hidden><i data-ikon=\"kode\"></i></button>"
+        "<button type=\"button\" class=\"tombol\" id=\"generate-ulang\" role=\"menuitem\" data-aksi=\"generate-ulang\" aria-label=\"Jalankan tools generate dan tulis index.html\" title=\"Generate ulang\" hidden><i data-ikon=\"kode\"></i><span>Generate ulang</span></button>"
     );
     let _ = writeln!(
         out,
-        "<button type=\"button\" class=\"tombol ikon-saja\" id=\"hapus-hasil\" data-aksi=\"hapus-hasil\" aria-label=\"Hapus hasil generate index.html\" title=\"Hapus hasil\" hidden><i data-ikon=\"buang\"></i></button>"
+        "<button type=\"button\" class=\"tombol\" id=\"hapus-hasil\" role=\"menuitem\" data-aksi=\"hapus-hasil\" aria-label=\"Hapus hasil generate index.html\" title=\"Hapus hasil\" hidden><i data-ikon=\"buang\"></i><span>Hapus hasil</span></button>"
     );
     let _ = writeln!(
         out,
-        "<button type=\"button\" class=\"tombol ikon-saja\" data-aksi=\"muat-data\" aria-label=\"Muat ulang data dari manifest\" title=\"Muat data\"><i data-ikon=\"folder\"></i></button>"
+        "<button type=\"button\" class=\"tombol\" role=\"menuitem\" data-aksi=\"muat-data\" aria-label=\"Muat ulang data dari manifest\" title=\"Muat data\"><i data-ikon=\"unduh\"></i><span>Muat data</span></button>"
     );
     let _ = writeln!(
         out,
-        "<button type=\"button\" class=\"tombol ikon-saja\" data-aksi=\"reset\" aria-label=\"Setel ulang penyaring, pilihan, dan zoom\" title=\"Setel ulang\"><i data-ikon=\"perbarui\"></i></button>"
+        "<button type=\"button\" class=\"tombol\" role=\"menuitem\" data-aksi=\"reset\" aria-label=\"Setel ulang penyaring, pilihan, dan zoom\" title=\"Setel ulang\"><i data-ikon=\"balik\"></i><span>Setel ulang</span></button>"
     );
+    let _ = writeln!(out, "</div>");
+    let _ = writeln!(out, "</div>");
     let _ = writeln!(
         out,
         "<button type=\"button\" class=\"kap\" id=\"kap\" data-aksi=\"muat-ubah\" data-cap=\"{cap}\" hidden aria-live=\"polite\"></button>"
@@ -259,7 +256,29 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
 
     let _ = writeln!(out, "<div class=\"badan\">");
     let _ = writeln!(out, "<aside id=\"pohon\" class=\"pohon\" aria-label=\"Struktur hierarki\">");
-    let _ = writeln!(out, "<div class=\"pohon-kepala\"><h2 id=\"pohon-judul\">Produk</h2><div class=\"pohon-kepala-alat\"><button type=\"button\" class=\"tombol ikon-saja pohon-kecil\" id=\"kecil-pohon\" aria-label=\"Perkecil struktur\" aria-pressed=\"false\" title=\"Perkecil\"><i data-ikon=\"struktur\"></i></button><button type=\"button\" class=\"tombol ikon-saja pohon-tutup\" id=\"tutup-pohon\" aria-label=\"Tutup struktur\" title=\"Tutup\"><i data-ikon=\"tutup\"></i></button></div></div>");
+    // Satu baris tab di puncak rel: daftar struktur dan daftar pekerjaan tidak lagi
+    // bertumpuk vertikal, mereka bergantian. Tab pertama memakai nama sumbu yang sedang
+    // aktif (diisi render.js lewat `pohon-judul`), dua berikutnya status papan dan lahir
+    // dalam keadaan hidden supaya repo tanpa `tugas.tsv` tetap punya satu baris judul.
+    let _ = writeln!(out, "<div class=\"sisi-tab\" id=\"sisi-tab\" role=\"tablist\" aria-label=\"Panel rel kiri\">");
+    let _ = writeln!(out, "<button type=\"button\" class=\"sisi-tab-tombol terpilih\" id=\"tab-struktur\" role=\"tab\" aria-selected=\"true\" aria-controls=\"panel-struktur\" tabindex=\"0\"><span id=\"pohon-judul\">Produk</span></button>");
+    let _ = writeln!(out, "<button type=\"button\" class=\"sisi-tab-tombol sisi-tab-status\" id=\"papan-tab-berjalan\" role=\"tab\" aria-selected=\"false\" aria-controls=\"papan-isi\" tabindex=\"-1\" hidden><span id=\"papan-tab-berjalan-nama\"></span><b id=\"papan-jumlah-berjalan\" class=\"papan-angka\"></b></button>");
+    let _ = writeln!(out, "<button type=\"button\" class=\"sisi-tab-tombol sisi-tab-status\" id=\"papan-tab-selesai\" role=\"tab\" aria-selected=\"false\" aria-controls=\"papan-selesai-isi\" tabindex=\"-1\" hidden><span id=\"papan-tab-selesai-nama\"></span><b id=\"papan-jumlah-selesai\" class=\"papan-angka\"></b></button>");
+    let _ = writeln!(out, "<div class=\"sisi-tab-alat\"><button type=\"button\" class=\"tombol ikon-saja pohon-kecil\" id=\"kecil-pohon\" aria-label=\"Perkecil struktur\" aria-pressed=\"false\" title=\"Perkecil\"><i data-ikon=\"struktur\"></i></button><button type=\"button\" class=\"tombol ikon-saja pohon-tutup\" id=\"tutup-pohon\" aria-label=\"Tutup struktur\" title=\"Tutup\"><i data-ikon=\"tutup\"></i></button></div>");
+    let _ = writeln!(out, "</div>");
+    // Angka jumlah adalah properti rel kiri — ia menghitung isi rel — jadi ia duduk di
+    // bawah tab, bukan di baris merek. Kata sumbu hanya lewat `title`: lima pil berlabel
+    // membuat baris melengkung jadi dua tinggi bahkan di 1536px.
+    let _ = writeln!(
+        out,
+        "<p class=\"sisi-info\" id=\"sisi-info\"><span title=\"service\"><i data-ikon=\"layanan\"></i><b>{}</b></span><span title=\"aplikasi\"><i data-ikon=\"aplikasi\"></i><b>{}</b></span><span title=\"produk\"><i data-ikon=\"produk\"></i><b>{}</b></span><span title=\"sub-fitur\"><i data-ikon=\"subfitur\"></i><b>{}</b></span><span title=\"relasi\"><i data-ikon=\"relasi\"></i><b>{}</b></span></p>",
+        model.services.len(),
+        model.apps.len(),
+        model.products.len(),
+        total,
+        model.edges.len()
+    );
+    let _ = writeln!(out, "<div id=\"panel-struktur\" class=\"sisi-panel\" role=\"tabpanel\" aria-labelledby=\"tab-struktur\">");
     let _ = writeln!(
         out,
         "<label class=\"cari\"><i data-ikon=\"cari\"></i><span class=\"sr-only\">Cari</span><input id=\"cari\" type=\"search\" placeholder=\"Cari\" autocomplete=\"off\"></label>"
@@ -269,16 +288,13 @@ pub(crate) fn render_html(model: &Model, cap: &str, css: &str, js: &str) -> Stri
         "<p id=\"hasil\" class=\"hasil\" aria-live=\"polite\"></p>"
     );
     let _ = writeln!(out, "<nav id=\"pohon-isi\" class=\"pohon-isi\"></nav>");
+    let _ = writeln!(out, "</div>");
     // Legenda TIDAK lagi di kolom ini. Ia pindah ke tombol info di kanvas (lihat section
-    // `peta`), jadi daftar struktur dan papan pekerjaan dapat seluruh tinggi sidebar.
+    // `peta`), jadi kedua panel rel dapat seluruh tinggi kolom.
     // Papan pekerjaan: disembunyikan sampai JS punya sesuatu untuk ditampilkan. Judul dan nama
     // status datang dari config, jadi panel ini tidak pernah membawa kata milik satu repo pun
-    // di kode alat. Dua daftar berbagi satu ruang lewat tab, bukan ditumpuk ke bawah.
+    // di kode alat. Tab-nya ada di baris tab atas; di dalam sini hanya dua daftarnya.
     let _ = writeln!(out, "<section id=\"papan\" class=\"papan\" hidden aria-live=\"polite\">");
-    let _ = writeln!(out, "<div class=\"papan-tab\" id=\"papan-tab\" role=\"tablist\" aria-label=\"Papan pekerjaan\">");
-    let _ = writeln!(out, "<button type=\"button\" class=\"papan-tab-tombol terpilih\" id=\"papan-tab-berjalan\" role=\"tab\" aria-selected=\"true\" aria-controls=\"papan-isi\" tabindex=\"0\"><span id=\"papan-tab-berjalan-nama\"></span><b id=\"papan-jumlah-berjalan\" class=\"papan-angka\"></b></button>");
-    let _ = writeln!(out, "<button type=\"button\" class=\"papan-tab-tombol\" id=\"papan-tab-selesai\" role=\"tab\" aria-selected=\"false\" aria-controls=\"papan-selesai-isi\" tabindex=\"-1\"><span id=\"papan-tab-selesai-nama\"></span><b id=\"papan-jumlah-selesai\" class=\"papan-angka\"></b></button>");
-    let _ = writeln!(out, "</div>");
     let _ = writeln!(out, "<div id=\"papan-isi\" class=\"papan-isi\" role=\"tabpanel\" aria-labelledby=\"papan-tab-berjalan\" tabindex=\"0\"></div>");
     let _ = writeln!(out, "<div id=\"papan-selesai-isi\" class=\"papan-isi\" role=\"tabpanel\" aria-labelledby=\"papan-tab-selesai\" tabindex=\"0\" hidden></div>");
     let _ = writeln!(out, "</section>");
