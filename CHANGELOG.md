@@ -9,6 +9,46 @@ sesuatu belum terukur, ia masuk bagian **Belum** — tidak ditulis sebagai penca
 
 ## [Changelog]
 
+### Belum dirilis — aset tampilan pindah ke `public/`, tanpa build untuk menyuntingnya (2026-10-28)
+
+**Tujuan rilis ini satu: menyunting tampilan berhenti terasa seperti menyunting kode program.**
+`src/` sekarang hanya Rust; CSS dan JS hidup di `public/`.
+
+1. **Dua berkas pindah, nol byte berubah.** `src/view.css` -> `public/view.css` dan
+   `src/render.js` -> `public/render.js` dipindah dengan `git mv`. Bukti murni: `sha256sum`
+   `docs/view/index.html` **identik** sebelum dan sesudah pemindahan (`1901c96c…`), karena dengan
+   satu berkas CSS `css()` tidak mencetak penanda apa pun.
+2. **Pembaca aset baru.** `css()` menggabung semua `public/*.css` menurut **urutan nama** dengan
+   penanda `/* ==== <berkas> ==== */` per berkas (penanda hanya muncul kalau berkasnya lebih dari
+   satu); `js()` membaca `public/render.js` dan **menolak** berkas `.js` kedua, karena `render.js`
+   satu IIFE. `aset()`, `aset_dari()`, dan kedua `include_str!` dihapus — tidak ada lagi salinan
+   terbaking, jadi `public/` adalah satu-satunya sumber.
+3. **Galat, bukan halaman tanpa gaya.** Aset hilang -> `generate` keluar bukan nol dengan pesan
+   yang menyebut path (`public/… wajib ikut bersama alat ini`), dijaga `aset_hilang_menyebut_path`.
+   Konsekuensi yang diterima: binari `cargo install` tanpa `public/` tidak lagi bisa jalan sendiri.
+4. **CSS dipecah tiga berkas berprefix angka.** `10-token.css` (176 baris), `20-komponen.css` (650),
+   `30-layar.css` (195); `public/render.js` tetap 2751. Urutan cascade terbaca dari nama, dan
+   `berkas_css_publik_berprefix_angka` menolak nama tanpa prefix (dibuktikan: mengganti nama satu
+   berkas jadi `komponen.css` membuat tes itu merah, lalu hijau lagi setelah dikembalikan).
+5. **Bukti tanpa build, bukan janji.** `sha256sum target/debug/feature-view.exe` = `3ac2cccc…`
+   **sebelum dan sesudah** menyunting CSS, sementara `sha256sum docs/view/index.html` berpindah
+   `6de228ef…` -> `6a0e35b0…`; suntingan ditarik dan `generate` mengembalikan halaman tepat ke
+   `6de228ef…`. Tidak ada `cargo build` di antara keduanya. (Angka hash itu milik binari sesi itu;
+   build bersih menghasilkan hash binari lain — yang dibuktikan adalah hash yang **sama** sebelum
+   dan sesudah suntingan, bukan binari yang reproducible.)
+6. **Pemecahan CSS terbukti tidak mengubah apa pun.** Isi `<style>` di halaman sama persis dengan
+   `src/view.css` versi lama setelah tiga penanda dan empat baris komentar kepala lapis dibuang
+   (diff nol baris). Halaman tumbuh 208.298 -> 208.709 byte, seluruhnya penanda dan komentar itu.
+7. **Dokumen ikut pindah.** `how_to_run.md` tidak lagi menyuruh `node --check src/render.js` (dua
+   tempat) dan bagian "tampilan" tidak lagi menjanjikan `cargo build`; ada bagian baru **8a.
+   Menyunting tampilan tanpa build**. README mendapat tabel `public/`, dan penjaga baru
+   `tabel_publik_di_dokumen_mencocokkan_angka_sahnya` menghitung ulang angkanya (dibuktikan merah
+   saat satu angka diubah satu).
+
+**Angka akhir.** Suite 92 -> **96 tes** (satu uji baking dihapus, lima penjaga aset ditambah),
+clippy nol, `check` dan `audit` exit 0 untuk root proyek dan dataset contoh.
+
+
 ### Belum dirilis — rel kiri bertab dan alat header jadi satu menu (2026-10-28)
 
 **Enam perubahan, semuanya terukur di Chrome pada halaman dataset pemakai (1280/820/420px, kedua skema).**

@@ -187,19 +187,32 @@ Dataset contoh sengaja memakai kosakata asing (`jalan`, `setengah`, `reda`, `ren
 
 | Berkas | Tanggung jawab | Baris | Tes |
 |---|---|---|---|
-| `src/main.rs` | titik masuk: argumen, pemilihan perintah, bantuan, petunjuk, penjaga struktur | 739 | 9 |
+| `src/main.rs` | titik masuk: argumen, pemilihan perintah, bantuan, petunjuk, penjaga struktur | 774 | 10 |
 | `src/data.rs` | bentuk data: entri manifest, kosakata config, peran status, papan pekerjaan | 166 | 0 |
 | `src/manifest.rs` | baca +urai delapan TSV jadi `Model`, cap isi manifest | 834 | 10 |
-| `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 788 | 13 |
+| `src/aturan.rs` | aturan validasi yang membuat `check` gagal, termasuk papan pekerjaan | 794 | 13 |
 | `src/halaman.rs` | perangkai HTML, JSON untuk JS, perhitungan status | 923 | 8 |
 | `src/audit.rs` | mesin audit: token, tiga pintu bukti, vonis, laporan | 1158 | 20 |
 | `src/saji.rs` | server HTTP kecil + `stop` | 483 | 8 |
-| `src/aset.rs` | baca `view.css`/`render.js` dari folder sumber, kamus bentuk, penjaga skala tampilan | 399 | 12 |
+| `src/aset.rs` | baca aset dari `public/`, kamus bentuk ikon, penjaga skala tampilan | 557 | 15 |
 | `src/setelan.rs` | batas dan default yang bisa di-override lewat env | 72 | 3 |
 | `src/template.rs` | kerangka `init` + tes dataset contoh | 364 | 9 |
 | `src/uji.rs` | pabrik objek tes + root uji (repo pemakai, jatuh ke `contoh/`) + pemotong wilayah produksi | 231 | 0 |
-| `src/render.js` | bentuk grafik + interaksi halaman (52 bentuk ikon) | - | - |
-| `src/view.css` | gaya halaman | - | - |
+
+Aset tampilan tinggal di `public/`, bukan di `src/`. `src/` hanya Rust: menyunting warna atau
+perilaku halaman tidak menuntut satu baris kode program berubah, dan `generate` membaca berkas
+dari sana apa adanya.
+
+| Berkas | Tanggung jawab | Baris |
+|---|---|---|
+| `public/10-token.css` | skala jarak/radius/tipografi, palet dua skema, rampa status dan grup | 176 |
+| `public/20-komponen.css` | reset, kontrol, header, rel kiri, inspektur kanan | 650 |
+| `public/30-layar.css` | kanvas graf, papan pekerjaan, media query responsif | 195 |
+| `public/render.js` | bentuk graf, interaksi halaman, kamus ikon | 2751 |
+
+CSS digabung `css()` menurut urutan **nama berkas**, jadi prefix dua angka itulah urutan cascade-nya.
+Berkas tanpa prefix ditolak penjaga `berkas_css_publik_berprefix_angka`. Skrip halaman tetap satu
+berkas: `render.js` satu IIFE, dan berkas `.js` kedua ditolak `js_hanya_satu_berkas`.
 
 Alur satu kali jalan: `muat_model` → `validate` → (`tulis_index` | `audit` | `sajikan`).
 
@@ -230,13 +243,13 @@ suite yang menyalakan — bukan ingatan saya.
 
 ## 9. Tes
 
-`cargo test` sekarang **91 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
+`cargo test` sekarang **96 tes**, tanpa jaringan dan tanpa satu pun berkas di luar folder alat ini
 ditulis permanen (tes `init` memakai folder temporer). `cargo clippy --all-targets -- -D warnings`
 harus nol: penjaga format kode ini adalah suite-nya sendiri. Perintah verifikasi lengkap — termasuk
 gerbang md5 untuk refactor murni dan resep mengukur tampilan di browser — ada di
 [how_to_run.md](how_to_run.md) bagian 6.
 
-Dua belas tes di `src/aset.rs` membaca ulang `view.css`, `render.js`, dan kamus bentuk ikon sebagai
+Empat belas tes di `src/aset.rs` membaca ulang `public/*.css`, `public/render.js`, dan kamus bentuk ikon sebagai
 teks lalu menghitung angkanya — langkah huruf (maksimal enam, semuanya `var(--fs-`), tangga
 radius, jarak pecahan, variabel yang dipakai tanpa definisi, kunci tema yang harus sama antara
 cangkang HTML dan skrip, dua daftar `display: none` yang harus tetap memuat blok yang ikut hilang

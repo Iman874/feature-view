@@ -145,7 +145,7 @@ pub(crate) fn jalankan() -> Result<ExitCode, String> {
         }
         "check" => {
             let cap = cap_manifest(&root)?;
-            let html = bangun_html(&model, &cap);
+            let html = bangun_html(&model, &cap)?;
             let lama = fs::read_to_string(&keluaran).map_err(|e| {
                 format!(
                     "GAGAL membaca {}: {e}\nJalankan generate terlebih dahulu.",
@@ -328,7 +328,7 @@ mod tests {
     fn render_js_tidak_mengenal_nama_data_repo() {
         let root = root_uji();
         let model = muat_model(&root).expect("manifest root uji harus valid");
-        let sumber_lower = fs::read_to_string(dir_aset().join("render.js"))
+        let sumber_lower = fs::read_to_string(dir_publik().join("render.js"))
             .expect("sumber render.js terbaca")
             .to_lowercase();
         let mut nama: Vec<String> = Vec::new();
@@ -357,7 +357,7 @@ mod tests {
         // Kunci kamus bentuk juga nama: kalau sebuah kunci sama dengan nama data, kode tampilan
         // masih mengenal isi repo ini walaupun tidak pernah dibaca sebagai teks utuh.
         let banding: Vec<String> = nama.iter().map(|n| n.to_lowercase()).collect();
-        let tabrakan: Vec<String> = bentuk_terdaftar(JS)
+        let tabrakan: Vec<String> = bentuk_terdaftar(&js().expect("render.js terbaca dari public/"))
             .into_iter()
             .filter(|b| banding.contains(&b.to_lowercase()))
             .collect();
@@ -389,12 +389,10 @@ mod tests {
         }
         let berkas = sumber_alat();
         let mut semua: Vec<(String, String)> = berkas;
-        for aset in ["render.js", "view.css"] {
-            semua.push((
-                aset.to_string(),
-                fs::read_to_string(dir_aset().join(aset)).expect("aset tampilan terbaca"),
-            ));
-        }
+        // Aset dibaca lewat pembacanya, bukan per nama berkas: sejak 0.5.0 CSS boleh terpecah
+        // jadi beberapa berkas, jadi menyebut "view.css" di sini akan diam-diam melewatkan aturan.
+        semua.push(("public/render.js".to_string(), js().expect("render.js terbaca dari public/")));
+        semua.push(("public/*.css".to_string(), css().expect("css terbaca dari public/")));
         // Hanya nama yang berbentuk identifier (`svc-satu`, `Node.js`, `TypeScript`) yang dituntut
         // absent. Aktor dan id produk yang hanyalah kata Indonesia biasa tidak dituntut: alat ini
         // boleh berkomentar pakai bahasa itu, dan `layak_token` adalah definisi identifier yang sama
@@ -428,7 +426,7 @@ mod tests {
         // provenance repo induk kalau memang ada.
         let mut dok: Vec<(String, String)> = Vec::new();
         for nama in ["README.md", "CHANGELOG.md", "how_to_run.md"] {
-            let path = dir_aset().parent().expect("crate punya induk").join(nama);
+            let path = dir_src().parent().expect("crate punya induk").join(nama);
             if let Ok(isi) = fs::read_to_string(&path) {
                 dok.push((nama.to_string(), isi));
             }
@@ -448,10 +446,14 @@ mod tests {
         for (nama, isi) in sumber_alat() {
             berkas.insert(nama, isi.lines().map(str::to_string).collect());
         }
-        for nama in ["render.js", "view.css", "uji.rs"] {
-            let isi = fs::read_to_string(dir_aset().join(nama)).expect("aset tampilan terbaca");
+        for (nama, isi) in [
+            ("render.js", js().expect("render.js terbaca dari public/")),
+            ("public/*.css", css().expect("css terbaca dari public/")),
+        ] {
             berkas.insert(nama.to_string(), isi.lines().map(str::to_string).collect());
         }
+        let uji = fs::read_to_string(dir_src().join("uji.rs")).expect("sumber uji.rs terbaca");
+        berkas.insert("uji.rs".to_string(), uji.lines().map(str::to_string).collect());
         let mut rusak: Vec<String> = Vec::new();
         let mut jumlah = 0usize;
         for (nama_dok, isi_dok) in &dok {
@@ -532,7 +534,7 @@ mod tests {
         // Penjaga yang tidak disebut di dokumen akan dibaca sebagai kebetulan, bukan aturan. Yang dibaca
         // adalah README milik alat ini, jadi aturan ini juga berlaku di repo mandiri — bukan dokumen
         // milik repo induk.
-        let readme = dir_aset()
+        let readme = dir_src()
             .parent()
             .expect("crate punya induk")
             .join("README.md");
@@ -594,7 +596,7 @@ mod tests {
         // saat `petunjuk` pindah baris. Tabel "Peta fungsi" menulis NAMA fungsinya di sebelah nomor,
         // jadi di situ nama dan nomor bisa dicocokkan langsung.
         use std::collections::HashMap;
-        let readme = dir_aset().parent().expect("crate punya induk").join("README.md");
+        let readme = dir_src().parent().expect("crate punya induk").join("README.md");
         let isi = fs::read_to_string(&readme).expect("README alat harus ada, termasuk di repo mandiri");
         let mut sumber: HashMap<String, Vec<String>> = HashMap::new();
         for (nama, teks) in sumber_alat() {
@@ -603,7 +605,7 @@ mod tests {
         }
         // `sumber_alat()` memang mengabaikan `uji.rs` (isinya fixture berbahasa Indonesia), tapi
         // tabel Peta fungsi juga menunjuk fungsi di dalamnya, jadi berkas itu dibaca sendiri.
-        let uji = fs::read_to_string(dir_aset().join("uji.rs")).expect("sumber uji.rs terbaca");
+        let uji = fs::read_to_string(dir_src().join("uji.rs")).expect("sumber uji.rs terbaca");
         sumber.insert("uji.rs".to_string(), uji.lines().map(str::to_string).collect());
         let mut diperiksa = 0usize;
         let salah: Vec<String> = isi
@@ -651,11 +653,48 @@ mod tests {
     }
 
     #[test]
+    fn tabel_publik_di_dokumen_mencocokkan_angka_sahnya() {
+        // Tabel `public/` di README menyebut jumlah baris tiap aset, dan angka itu bergeser setiap
+        // kali CSS dipecah. Penjaga tabel modul sengaja TIDAK diperluas: ia hanya membaca baris
+        // `| \`src/...\`` dan hanya berkas `.rs`, jadi aset akan lolos dari jaringnya.
+        let akar = dir_src().parent().expect("crate punya induk").to_path_buf();
+        let isi = fs::read_to_string(akar.join("README.md")).expect("README alat terbaca");
+        let mut diperiksa = 0usize;
+        let mut salah: Vec<String> = Vec::new();
+        for baris in isi.lines() {
+            if !baris.starts_with("| `public/") {
+                continue;
+            }
+            let kolom: Vec<&str> = baris.split('|').map(str::trim).collect();
+            if kolom.len() < 5 {
+                continue;
+            }
+            let berkas = kolom[1].trim_matches('`');
+            let Ok(angka) = kolom[3].parse::<usize>() else { continue };
+            let Ok(teks) = fs::read_to_string(akar.join(berkas)) else {
+                salah.push(format!("{berkas}: berkas tidak ada"));
+                diperiksa += 1;
+                continue;
+            };
+            diperiksa += 1;
+            let nyata = teks.lines().count();
+            if nyata != angka {
+                salah.push(format!("{berkas} tertulis {angka} baris, nyata {nyata}"));
+            }
+        }
+        assert!(
+            diperiksa >= 2,
+            "tabel public/ harus menyumbang minimal dua baris terperiksa, dapat {diperiksa} — kalau polanya berubah, penjaga ini tidak boleh diam-diam jadi no-op"
+        );
+        assert!(salah.is_empty(), "angka tabel public/ tidak sah: {salah:?}");
+    }
+
+    #[test]
     fn tabel_modul_di_dokumen_mencocokkan_angka_sahnya() {
         // Kolom "Baris" dan "Tes" pada tabel modul ditulis dengan tangan dan sudah dua kali basi
         // dalam satu hari kerja. Penjaga ini menghitung ulang keduanya dari berkas, jadi dokumen
         // tidak bisa mengklaim dirinya sinkron.
-        let sumber_crate = dir_aset();
+        let sumber_crate = dir_src();
         let akar_crate = sumber_crate.parent().expect("crate punya induk");
         let mut dokumen: Vec<(String, String)> = Vec::new();
         for nama in ["README.md", "CHANGELOG.md", "how_to_run.md"] {
@@ -685,7 +724,7 @@ mod tests {
                     Some(n) if n.ends_with(".rs") => n.to_string(),
                     _ => continue,
                 };
-                let Ok(isi_berkas) = fs::read_to_string(dir_aset().join(&nama_berkas)) else { continue };
+                let Ok(isi_berkas) = fs::read_to_string(dir_src().join(&nama_berkas)) else { continue };
                 let nyata_baris = isi_berkas.lines().count();
                 // Dithitung per baris, BUKAN per kemunculan substring: jarum ini dulu
                 // `matches("#[test]")` dan ia ikut menghitung teks `"#[test]"` di dalam baris
@@ -722,12 +761,8 @@ mod tests {
         // di `tools/`). Satu pesan yang menyebut `tools/feature-view` sudah cukup membuat petunjuknya
         // salah di tempat lain — dan pesan itu ter-bake ke index.html, jadi salahnya ikut ter-commit.
         let mut sumber = sumber_alat();
-        for nama in ["render.js", "view.css"] {
-            sumber.push((
-                nama.to_string(),
-                fs::read_to_string(dir_aset().join(nama)).expect("aset tampilan terbaca"),
-            ));
-        }
+        sumber.push(("public/render.js".to_string(), js().expect("render.js terbaca dari public/")));
+        sumber.push(("public/*.css".to_string(), css().expect("css terbaca dari public/")));
         for (asal, isi) in &sumber {
             let produksi = produksi_dari(isi);
             assert!(

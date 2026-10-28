@@ -2,8 +2,8 @@
 #
 # Ini bukan gaya-gayaan. Alat ini membandingkan byte: `check` menjajarkan
 # `docs/view/index.html` di disk dengan hasil susun hari ini, `cap_manifest` mengambil hash
-# dari isi MENTAH ketujuh TSV, dan `render.js`/`view.css` di-`include_str!` lalu tertanam apa
-# adanya ke halaman. Dengan `* text=auto` saja, orang yang meng-clone dengan
+# dari isi MENTAH ketujuh TSV, dan `public/*.css` serta `public/render.js` digabung apa adanya
+# ke halaman. Dengan `* text=auto` saja, orang yang meng-clone dengan
 # `core.autocrlf=true` (default penginstal Git di Windows) menerima CRLF di working tree-nya:
 # terukur 2026-10-26 pada simulasi clone, `index.html` berisi 3.095 byte CR dan
 # `check --root contoh` keluar dengan exit 1 padahal isinya identik. `eol=lf` membuat hasil

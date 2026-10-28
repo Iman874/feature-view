@@ -15,7 +15,7 @@ pub(crate) fn batas_baca_bukti() -> u64 {
     angka_env("PETA_BATAS_BACA_BUKTI", BATAS_BACA_BUKTI)
 }
 
-/// Bangun HTML dari model. CSS dan JS diambil dari disk kalau ada (lihat `aset`), supaya
+/// Bangun HTML dari model. CSS dan JS dibaca dari folder `public/` (lihat `aset`), supaya
 /// ubahan tampilan langsung ikut ke file hasil generate tanpa perlu build ulang biner.
 /// Kata layak jadi bukti: cukup panjang dan berbentuk identitas, bukan kata biasa.
 /// Huruf besar di awal saja TIDAK cukup — kalimat Indonesia mulai dengan huruf besar

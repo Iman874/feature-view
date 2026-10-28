@@ -17,7 +17,13 @@ pub(crate) fn validate(model: &Model, root: &Path) -> Vec<String> {
     let mut nama_fitur = HashSet::new();
 
     // Kamus bentuk ikon ada di kode tampilan; manifest wajib menunjuk nama yang ada di dalamnya.
-    let (js_teks, _) = aset("render.js", JS);
+    let js_teks = match js() {
+        Ok(isi) => isi,
+        Err(pesan) => {
+            galat.push(pesan);
+            return galat;
+        }
+    };
     let bentuk = bentuk_terdaftar(&js_teks);
     if bentuk.is_empty() {
         galat.push(

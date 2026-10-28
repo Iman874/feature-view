@@ -1,0 +1,195 @@
+/* Lapis 3: layar. Kanvas graf, papan pekerjaan, dan media query responsif. */
+#jejaring .node { cursor: pointer; }
+#jejaring .ikon { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#jejaring .klaster-kepala { opacity: 0.95; }
+#jejaring .titik-kanvas { fill: var(--titik); }
+#jejaring .node-tile { fill-opacity: 0.16; stroke: none; }
+#jejaring .node-pill { fill: var(--panel-lembut); stroke: var(--garis); stroke-width: 1; }
+#jejaring .node-kotak { fill: var(--panel); stroke: var(--garis-keras); stroke-width: 1.5; }
+#jejaring .node:hover .node-kotak { stroke: var(--aksen); }
+/* Kartu terpilih: garis tepi gelap tipis + bayangan halus. Bekasnya sorotan warna
+   9px (drop-shadow 0 0 9px var(--aksen)) membuat satu kartu menyala di atas kanvas;
+   aturan proyek melarang efek menyala, jadi penanda dipilih dipindah ke tepi dan
+   kedalaman, bukan ke cahaya. */
+#jejaring .node.terpilih { filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.20)); }
+#jejaring .node.terpilih .node-kotak { stroke: var(--teks); stroke-width: 1.5; }
+#jejaring .node-aksen { stroke: none; }
+#jejaring .node-teks { fill: var(--teks); font-size: var(--fs-5); font-weight: 600; dominant-baseline: middle; }
+#jejaring .node-jumlah { fill: var(--teks-lembut); font-size: var(--fs-3); font-weight: 600; dominant-baseline: middle; }
+#jejaring .node.redup { opacity: var(--redup); }
+#jejaring .node.buram { opacity: 0.18; }
+/* Kartu terpilih adalah kartu yang sedang dijelaskan panel inspektur: ia tidak boleh
+   ikut diredup oleh penyaring, kalau tidak auditor menjelaskan kartu yang nyaris tak terlihat. */
+#jejaring .node.terpilih { opacity: 1; }
+#jejaring .node.cari-cocok .node-kotak { stroke: var(--aksen); }
+/* Zoom semantik: jauhkan kamera maka teks berhenti dikejar. Di bawah ambang skala
+   kartu menyusut jadi cip (tile ikon + strip status) supaya bentuk grafiknya terbaca. */
+#jejaring.simpl .node-teks,
+#jejaring.simpl .node-pill,
+#jejaring.simpl .node-jumlah,
+#jejaring.simpl .node-progres { display: none; }
+#jejaring.simpl .node-kotak { width: 54px; }
+/* Garis tetap latar, bukan subjek: tiap garis memakai hue jenis relasinya sejak awal supaya
+   legenda "Relasi" benar, tapi opacity dijaga rendah (0,26) karena 108 garis penuh warna akan
+   mengubah peta jadi semak. Kartu terpilih menaikkan hue-nya sendiri lewat .terkait. */
+#jejaring .edge { fill: none; stroke: var(--jenis-warna, var(--jaringan)); stroke-width: 1; stroke-opacity: 0.26; }
+#jejaring .edge.redup { stroke-opacity: 0.05; }
+#jejaring .edge.buram { stroke-opacity: 0.05; }
+#jejaring .edge.terkait { stroke: var(--jenis-warna, var(--aksen)); stroke-width: 2.2; stroke-opacity: 0.95; }
+#jejaring .klaster { fill-opacity: 0.05; stroke-opacity: 0.45; stroke-width: 1.2; }
+#jejaring .klaster-label { fill: var(--teks-lembut); font-size: var(--fs-4); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+#jejaring .klaster-jumlah { fill: var(--garis-keras); font-weight: 600; }
+
+@media (min-width: 1181px) {
+  .pohon-kecil { display: inline-flex; }
+  .pohon.kecil { flex-basis: 52px; }
+  .pohon.kecil .sisi-tab { justify-content: center; padding: var(--sp-3); }
+  .pohon.kecil .sisi-tab-tombol, .pohon.kecil .sisi-info, .pohon.kecil .pohon-tutup,
+  .pohon.kecil .cari, .pohon.kecil .hasil, .pohon.kecil .papan,
+  .pohon.kecil .pohon-nama, .pohon.kecil .pohon-angka, .pohon.kecil .status-titik,
+  .pohon.kecil .pohon-detail, .pohon.kecil .pohon-grup h3 span, .pohon.kecil .pohon-grup h3 b,
+  .pohon.kecil .pohon-grup-tombol .chevron { display: none; }
+  .pohon.kecil .pohon-isi { padding: var(--sp-3) var(--sp-3); }
+  .pohon.kecil .pohon-grup { margin-top: var(--sp-5); }
+  .pohon.kecil .pohon-grup h3, .pohon.kecil .pohon-grup-tombol { justify-content: center; padding: 0; }
+  .pohon.kecil .pohon-pilih, .pohon.kecil .pohon-sub { justify-content: center; gap: 0; padding: var(--sp-1) 0; }
+  .pohon.kecil .pohon-item { margin-bottom: var(--sp-1); }
+  .pohon.kecil .ikon-bungkus {
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: var(--r-md);
+    background: color-mix(in srgb, var(--grup-warna, var(--aksen)) var(--nuansa), transparent);
+  }
+  /* Di rail kecil penanda terpilih sudah cincin aksen di sekeliling ikon. Cincang rambut
+     dari .terpilih penuh di atas menumpuk jadi dua bingkai di kotak 52px, jadi dimatikan. */
+  .pohon.kecil .pohon-pilih.terpilih, .pohon.kecil .pohon-sub.terpilih { background: none; box-shadow: none; }
+  .pohon.kecil .pohon-pilih.terpilih .ikon-bungkus,
+  .pohon.kecil .pohon-sub.terpilih .ikon-bungkus { outline: 2px solid var(--aksen); outline-offset: var(--sp-1); }
+}
+@media (max-width: 1180px) {
+  .pohon {
+    display: none;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    width: min(320px, 88vw);
+    flex-basis: auto;
+    box-shadow: 0 0 0 1px var(--garis), 0 var(--sp-6) 32px rgba(0, 0, 0, 0.22);
+  }
+  .pohon.terbuka { display: flex; }
+  .tombol-pohon { display: inline-flex; }
+  .pohon-tutup { display: inline-flex; }
+  .detail { flex-basis: 330px; }
+  .minimap { top: calc(var(--sp-3) + var(--kontrol-tinggi) + var(--sp-3)); right: var(--sp-3); bottom: auto; width: 150px; height: 98px; }
+}
+@media (max-width: 900px) {
+  .badan { flex-direction: column; overflow: auto; }
+  .peta { flex: 0 0 auto; height: 58vh; min-height: 340px; }
+  .detail { flex: 0 0 auto; border-left: 0; border-top: 1px solid var(--garis); max-height: none; }
+  .bar { padding: var(--sp-4) var(--sp-5); gap: var(--sp-3); }
+  .bar-alat { margin-left: 0; width: 100%; }
+}
+@media (max-width: 640px) {
+  .app { height: auto; min-height: 100dvh; }
+  .bar-merek { gap: var(--sp-1) var(--sp-4); }
+  .segmen { flex: 1 1 100%; }
+  .segmen .tombol { flex: 1 1 auto; justify-content: center; }
+  .pilih-kontrol { flex: 1 1 0; min-width: 0; }
+  .pilih-kontrol select { width: 100%; min-width: 0; }
+  .peta { height: 52vh; min-height: 300px; }
+  .alat-peta { left: var(--sp-3); bottom: var(--sp-3); }
+  .minimap { display: block; top: calc(var(--sp-3) + var(--kontrol-tinggi) + var(--sp-3)); right: var(--sp-3); bottom: auto; width: 140px; height: 92px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+/* --- papan pekerjaan (tugas.tsv) ---
+   Panel ini hanya diisi kalau repo memakainya, jadi tidak ada satu pun gaya yang berlaku saat
+   `tugas.tsv` tidak ada. Insetnya sama dengan blok tetangga di kolom yang sama, supaya satu
+   sidebar tidak punya dua inset dan dua tangga judul. Status TIDAK dipilih
+   lewat nama di sini: nama status adalah data dari config.tsv dan kode tampilan tidak boleh
+   mengenalnya. Yang beranimasi hanya baris yang angkanya sungguh di antara nol dan seratus;
+   baris 0% diam, karena gerak akan mengklaim pekerjaan yang belum berjalan. */
+.papan {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--sp-5);
+  color: var(--teks-lembut);
+  font-size: var(--fs-1);
+}
+/* Tingginya tidak pernah ikut isi. Panel ini adalah SATU dari dua panel rel yang
+   bergantian lewat tab, dan kolomnya sendiri dipatok `.app { height: 100dvh }`, jadi yang
+   membatasi adalah kolomnya -- bukan langit-langit angka seperti sebelum 0.4.4 (168px,
+   waktu kedua daftar masih bertumpuk dan yang bawah bisa mendorong yang atas keluar layar). */
+.papan-isi { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.papan-baris + .papan-baris { margin-top: var(--sp-4); }
+.papan-kepala { display: flex; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
+/* `width: 0` wajib ada di samping flex-basis: tanpa itu, satu judul tugas yang panjang
+   ikut dihitung sebagai lebar minimum kolom dan sidebar membengkak dari 321px jadi 390px
+   (diukur; `flex: 1 1 0` saja tidak cukup). */
+.papan-nama { flex: 1 1 0; width: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-2); color: var(--teks); }
+.papan-angka { font-size: var(--fs-2); font-weight: 700; color: var(--aksen-tegas); font-variant-numeric: tabular-nums; }
+.papan-rel { margin-top: var(--sp-1); font-size: var(--fs-1); }
+/* Jalur harus bisa dilihat: --panel-lembut hanya 1,18:1 terhadap panel, dan batang kosong
+   di jalur yang tidak terlihat membuat baris terbaca rusak. Campuran 55% teks-lembut,
+   diukur dari warna hasil render (bukan nama token): jalur terhadap panel 3,11:1 (gelap)
+   dan 2,10:1 (terang); isi batang memakai --aksen-tegas dan terhadap jalurnya 4,05:1
+   (gelap) dan 3,73:1 (terang), keduanya di atas ambang WCAG 1.4.11 = 3:1. Yang diikat 3:1
+   adalah isi batang sebagai tanda bermakna, bukan sisa jalurnya. Cip di bawahnya sengaja
+   lebih lemah (28%): ia mengemban teks 12px, bukan hanya bentuk. */
+.papan-jalur { position: relative; margin-top: var(--sp-2); height: 4px; overflow: hidden; border-radius: var(--r-pill); background: color-mix(in srgb, var(--teks-lembut) 55%, transparent); }
+.papan-batang { position: relative; height: 100%; overflow: hidden; border-radius: var(--r-pill); background: var(--aksen-tegas); }
+.papan-baris.sebagian .papan-batang::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, var(--panel), transparent);
+  animation: papan-berjalan 2.4s linear infinite;
+}
+@keyframes papan-berjalan {
+  from { left: -40%; }
+  to { left: 100%; }
+}
+.papan-kaki { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+.papan-kaki .papan-rumah { margin-top: 0; }
+/* Id sub-fitur adalah rujukan, bukan kalimat: dipakai apa adanya supaya bisa dicari,
+   tapi dikasih permukaan sendiri supaya tidak menyatu sebagai teks nyasar. */
+.papan-rumah {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: var(--sp-2);
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--teks-lembut) 28%, transparent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.papan-detail {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--aksen-tegas);
+  font-family: inherit;
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+.papan-detail .ikon { width: 1em; height: 1em; }
+.papan-detail:hover { text-decoration: underline; }
+.papan-detail:focus-visible { outline: 2px solid var(--aksen-tegas); outline-offset: 2px; border-radius: var(--r-sm); }
+#jejaring .node-progres { fill: var(--aksen-tegas); font-size: var(--fs-1); font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) {
+  .papan-baris.sebagian .papan-batang::after { display: none; animation: none; }
+}

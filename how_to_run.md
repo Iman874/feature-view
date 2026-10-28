@@ -9,7 +9,7 @@ buktikan; kalau Anda hanya ingin tahu "jalankan apa", halaman ini yang dibaca.
 |---|---|---|
 | Rust (`cargo`, `rustc`) | dibangun dan dites pada **rustc 1.99.1**, edition 2021 | `rust-version` sengaja **belum** diumumkan di `Cargo.toml`: angka minimum belum diuji pada toolchain lama, dan menuliskannya tanpa uji berarti berbohong ke CI orang |
 | Dependency Rust | **nol** | hanya `std`; tidak ada satu pun crate di `[dependencies]`, jadi tidak ada `Cargo.lock` pihak ketiga yang bisa ikut terseret |
-| Node.js | opsional | hanya dipakai saat mengembangkan: `node --check src/render.js` untuk memastikan skrip halaman masih valid sintaks |
+| Node.js | opsional | hanya dipakai saat mengembangkan: `node --check public/render.js` untuk memastikan skrip halaman masih valid sintaks |
 | Browser | apa pun yang mendukung `color-mix()` dan CSS custom properties | halaman hasilnya satu berkas HTML, tanpa aset eksternal, tanpa jaringan |
 | Sistem operasi | **Linux dan Windows** diuji di CI | macOS belum diuji. `serve` jalan di semua; `stop` khusus Windows (lihat bagian 5) |
 
@@ -159,9 +159,9 @@ token ini" menjadi **batas bawah**, dan laporan mengatakannya.
 ## 6. Verifikasi sendiri
 
 ```
-cargo test                                              # 91 tes, tanpa jaringan
+cargo test                                              # 96 tes, tanpa jaringan
 cargo clippy --all-targets -- -D warnings               # harus nol
-node --check src/render.js                              # hanya saat menyentuh skrip halaman
+node --check public/render.js                           # hanya saat menyentuh skrip halaman
 cargo run -- generate --root contoh && cargo run -- check --root contoh && cargo run -- audit --root contoh
 ```
 
@@ -209,6 +209,33 @@ ketiga: pasang Rust + clippy, `cargo clippy --all-targets -- -D warnings`, `carg
 pencocok jumlah tes di README dengan suite, `generate`/`check`/`audit` pada `contoh/`, lalu langkah
 `init` di repo kosong yang juga menuntut `check` **menolak** kerangka kosong.
 
+## 8a. Menyunting tampilan tanpa build
+
+Aset tampilan hidup di `public/`, di luar `src/`. Rust tidak membakar keduanya ke binari lagi, jadi
+mengubah warna, tata letak, atau perilaku halaman **tidak menuntut `cargo build`**:
+
+```
+# 1. sunting public/10-token.css, public/20-komponen.css, public/30-layar.css, atau public/render.js
+# 2. tulis ulang halaman memakai binari yang sudah ada
+./target/debug/feature-view generate --root <root-repo>          # shell POSIX
+.	arget\debugeature-view.exe generate --root <root-repo>    # PowerShell / cmd
+
+# 3. atau, kalau serve sedang jalan, tekan tombol generate di halaman / POST /regenerate
+```
+
+Buktinya berupa angka, bukan janji: `sha256sum` binari sama sebelum dan sesudah suntingan CSS,
+sementara `sha256sum` `docs/view/index.html` berubah.
+
+Aturan yang dijaga tes, bukan ingatan:
+
+- **CSS boleh dipecah, asal berprefix dua angka.** `css()` menggabung semua `public/*.css` menurut
+  **urutan nama**, jadi `10-`, `20-`, `30-` itulah urutan cascade. Berkas tanpa prefix ditolak
+  `berkas_css_publik_berprefix_angka`.
+- **Skrip halaman tetap satu berkas.** `public/render.js` adalah satu IIFE; berkas `.js` kedua
+  ditolak `js_hanya_satu_berkas` karena tidak akan bisa melihat fungsi di dalam IIFE itu.
+- **`public/` wajib ikut kalau alat disalin** ke repo atau mesin lain. Kalau folder itu hilang,
+  `generate` berhenti dengan pesan yang menyebut path — bukan halaman tanpa gaya.
+
 ## 9. Tempat yang layak dibuka kalau Anda mau mengubah perilaku
 
 | Yang mau diubah | Mulai dari |
@@ -217,7 +244,7 @@ pencocok jumlah tes di README dengan suite, `generate`/`check`/`audit` pada `con
 | root yang dipakai tes saat alat berdiri sendiri | `root_uji` (`src/uji.rs:142`) — menerima kandidat hanya kalau manifestnya benar-benar terurai, lalu jatuh ke `contoh/` |
 | aturan yang membuat `check` gagal | `src/aturan.rs` saja, plus tesnya di situ |
 | kolom manifest baru | `src/data.rs` (bentuk) + parser di `src/manifest.rs` + validasi di `src/aturan.rs` |
-| tampilan | `src/view.css` (skala dan palet) dan `src/render.js` (bentuk graf), lalu `cargo build` + `generate` |
+| tampilan | `public/10-token.css` (skala dan palet), `20-komponen.css`, `30-layar.css`, dan `public/render.js` (bentuk graf) — sunting lalu `generate`, **tanpa** `cargo build` |
 
 Kutipan `nama.rs:NNN` di halaman ini ikut diperiksa tes `sitasi_baris_di_dokumen_masih_hidup`: kalau
 sebuah fungsi berpindah dan dokumen tidak ikut diperbarui, suite yang menyalakan — bukan ingatan

@@ -4,7 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Peta Fitur Repo Contoh</title>
-<style>/* ===========================================================================
+<style>/* ==== 10-token.css ==== */
+/* Lapis 1: token. Skala jarak/radius/tipografi, palet dua skema, rampa status dan grup.
+   Tidak ada satu pun aturan yang memilih elemen di sini; semuanya nilai. */
+/* ===========================================================================
    Skala. Semua angka tampilan lahir dari tiga keluarga token di bawah ini:
    jarak (kelipatan 4px), radius, dan tipografi (enam langkah, lantai 12px).
    Aturan ini dijaga oleh tes di src/aset.rs — menambah nilai telanjang baru
@@ -178,6 +181,8 @@
   --relasi-6: var(--netral-9);
 }
 
+/* ==== 20-komponen.css ==== */
+/* Lapis 2: komponen. Reset, kontrol, header, rel kiri, inspektur kanan. */
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { font-size: 100%; }
@@ -827,6 +832,8 @@ i .ikon, .ikon-bungkus .ikon { width: 1rem; height: 1rem; }
 .pohon .hasil { padding-left: var(--sp-5); border-bottom: 0; color: var(--teks-baris); }
 .pohon .hasil span { color: var(--teks-baris); }
 
+/* ==== 30-layar.css ==== */
+/* Lapis 3: layar. Kanvas graf, papan pekerjaan, dan media query responsif. */
 #jejaring .node { cursor: pointer; }
 #jejaring .ikon { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 #jejaring .klaster-kepala { opacity: 0.95; }

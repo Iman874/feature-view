@@ -126,7 +126,7 @@ pub(crate) fn edge(dari: &str, ke: &str) -> Edge {
 /// Dataset contoh milik alat ini, di dalam folder crate: `contoh/docs/view/*.tsv` beserta kode palsunya.
 /// Karena letaknya di samping sumber, ia ikut terbawa saat alat ini menjadi repo mandiri.
 pub(crate) fn root_contoh() -> PathBuf {
-    let crate_dir = dir_aset()
+    let crate_dir = dir_src()
         .parent()
         .expect("sumber alat harus hidup di dalam folder crate")
         .to_path_buf();
@@ -204,11 +204,11 @@ pub(crate) fn produksi_dari(isi: &str) -> &str {
 
 /// Semua berkas sumber alat yang ikut dijaga, terurut nama, sebagai (nama berkas, isi). `uji.rs` sengaja
 /// dikecualikan: ia berisi fixture berbahasa Indonesia, jadi menyapunya akan membuat penjaga merek gagal
-/// oleh datanya sendiri. Sumber dibaca dari folder crate (`dir_aset`), bukan dari bentuk repo pemakai.
+/// oleh datanya sendiri. Sumber dibaca dari folder crate (`dir_src`), bukan dari bentuk repo pemakai.
 /// Dipakai tes penjaga yang harus menyapu SELURUH modul — kalau penjaga hanya membaca satu berkas, memecah
 /// kode diam-diam melonggarkan aturannya.
 pub(crate) fn sumber_alat() -> Vec<(String, String)> {
-    let folder = dir_aset();
+    let folder = dir_src();
     let mut daftar: Vec<String> = fs::read_dir(&folder)
         .expect("folder sumber alat harus ada")
         .filter_map(|e| e.ok())

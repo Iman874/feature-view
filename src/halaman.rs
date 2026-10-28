@@ -10,16 +10,16 @@ use crate::data::*;
 use crate::manifest::*;
 use crate::aset::*;
 
-pub(crate) fn bangun_html(model: &Model, cap: &str) -> String {
-    let (css, _) = aset("view.css", CSS);
-    let (js, _) = aset("render.js", JS);
-    render_html(model, cap, &css, &js)
+pub(crate) fn bangun_html(model: &Model, cap: &str) -> Result<String, String> {
+    let css = css()?;
+    let js_teks = js()?;
+    Ok(render_html(model, cap, &css, &js_teks))
 }
 
 /// Satu-satunya jalan tulis untuk index.html. Dipakai perintah `generate` DAN endpoint
 /// `/regenerate`, jadi tombol di halaman menjalankan kode yang sama persis dengan CLI.
 pub(crate) fn tulis_index(root: &Path, model: &Model, cap: &str) -> Result<String, String> {
-    let html = bangun_html(model, cap);
+    let html = bangun_html(model, cap)?;
     let keluaran = root.join(OUTPUT_FILE);
     fs::write(&keluaran, &html)
         .map_err(|e| format!("GAGAL menulis {}: {e}", keluaran.display()))?;

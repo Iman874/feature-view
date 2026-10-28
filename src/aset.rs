@@ -1,17 +1,26 @@
-//! Kode tampilan (CSS dan JS) dan kamus bentuk ikon, dibaca dari sumber crate itu sendiri.
-//! Kalau sumber tidak ada (binari hasil install), jatuh ke salinan terbaking dalam binary.
+//! Aset tampilan (CSS dan JS) dibaca dari folder `public/` milik alat ini, dan kamus bentuk ikon
+//! dibaca dari isi `render.js` yang sama. `src/` hanya berisi Rust: aset sengaja dipisah supaya
+//! bisa disunting, dipecah, atau dihapus tanpa menyentuh kode program.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Direktori tempat sumber alat ini berada, diketahui saat kompilasi. Tidak diikat ke bentuk repo
-/// pemakai: alat yang disalin ke project mana pun membaca `render.js`/`view.css` dari checkout-nya
-/// sendiri, dan jatuh ke salinan terbaking kalau dijalankan sebagai binari hasil `cargo install`.
-pub(crate) fn dir_aset() -> PathBuf {
+/// Direktori sumber Rust. Dipakai uji yang membaca berkas `.rs` (hitungan baris, peta fungsi,
+/// penjaga anti-hardcode) — bukan untuk aset tampilan. Hanya hidup di build tes: binari produksi
+/// tidak pernah membaca sumbernya sendiri.
+#[cfg(test)]
+pub(crate) fn dir_src() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("src")
 }
 
-/// Nama bentuk ikon yang tersedia di kode tampilan. Dibaca dari sumber `render.js` supaya `check`
+/// Direktori aset tampilan. Tidak diikat ke bentuk repo pemakai: di repo mana pun alat ini
+/// dipakai, `--root` tidak mengubah folder ini. `public/` wajib ikut bila alat disalin ke mesin
+/// lain; tidak ada lagi salinan terbaking di dalam binari, jadi folder ini satu-satunya sumber.
+pub(crate) fn dir_publik() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("public")
+}
+
+/// Nama bentuk ikon yang tersedia di kode tampilan. Dibaca dari isi `render.js` supaya `check`
 /// bisa membuktikan tiap baris manifest menunjuk bentuk yang sungguh ada — dulu ini tidak terbaca
 /// dan aplikasi tanpa entri ikon lolos senyap dengan ikon generik.
 pub(crate) fn bentuk_terdaftar(js: &str) -> Vec<String> {
@@ -47,63 +56,212 @@ pub(crate) fn bentuk_terdaftar(js: &str) -> Vec<String> {
     nama
 }
 
-/// serve mengambil CSS dan JS dari disk bila ketemu, supaya ubahan gaya atau logika
-/// graf terlihat pada permintaan berikutnya tanpa build ulang. generate memakai sumber yang sama,
-/// jadi halaman yang ditulis dan halaman yang disajikan tidak pernah beda versi.
-pub(crate) fn aset(nama: &str, baked: &str) -> (String, &'static str) {
-    aset_dari(&dir_aset(), nama, baked)
+/// Seluruh CSS di `public/`, digabung menurut urutan NAMA berkas. Urutan nama, bukan waktu ubah:
+/// hasil `generate` harus sama di dua mesin, dan `check` membandingkan byte. Pemisah per berkas
+/// dicetak supaya orang yang membaca `index.html` tahu dari berkas mana satu aturan datang.
+pub(crate) fn css() -> Result<String, String> {
+    css_dari(&dir_publik())
 }
 
-/// Bentuk murni dari `aset`, dengan folder bisa ditentukan sendiri supaya jalur "disk vs baking"
-/// bisa dites tanpa menunggu binari dipasang di mesin lain.
-pub(crate) fn aset_dari(dir: &Path, nama: &str, baked: &str) -> (String, &'static str) {
-    match fs::read_to_string(dir.join(nama)) {
-        Ok(isi) => (isi, "disk"),
-        Err(_) => (baked.to_string(), "baking"),
+pub(crate) fn css_dari(dir: &Path) -> Result<String, String> {
+    let isi_dir = fs::read_dir(dir).map_err(|e| {
+        format!(
+            "GAGAL membaca folder aset tampilan {}: {e} (folder public/ wajib ikut bersama alat ini)",
+            dir.display()
+        )
+    })?;
+    let mut berkas: Vec<PathBuf> = isi_dir
+        .filter_map(|b| b.ok())
+        .map(|b| b.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("css"))
+        .collect();
+    if berkas.is_empty() {
+        return Err(format!(
+            "GAGAL: tidak ada satu pun *.css di {} (folder public/ wajib ikut bersama alat ini)",
+            dir.display()
+        ));
     }
+    berkas.sort_by_key(|p| p.file_name().map(|n| n.to_os_string()));
+    // Penanda hanya berguna kalau ada lebih dari satu berkas. Dengan satu berkas ia cuma
+    // menambah byte tanpa memberi tahu apa pun, jadi tidak dicetak.
+    let berpenanda = berkas.len() > 1;
+    let mut gabungan = String::new();
+    for path in berkas {
+        let isi = fs::read_to_string(&path)
+            .map_err(|e| format!("GAGAL membaca aset tampilan {}: {e}", path.display()))?;
+        if berpenanda {
+            let nama = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or("tanpa-nama");
+            gabungan.push_str(&format!("/* ==== {nama} ==== */\n"));
+        }
+        gabungan.push_str(&isi);
+        if !isi.ends_with('\n') {
+            gabungan.push('\n');
+        }
+    }
+    Ok(gabungan)
 }
 
-pub(crate) const CSS: &str = include_str!("view.css");
+/// Skrip halaman: tepat satu berkas `render.js`. Berkas kedua ditolak, bukan diabaikan: `render.js`
+/// adalah satu IIFE, dan dua berkas yang digabung ke satu `<script>` membuat berkas kedua tidak
+/// bisa melihat satu pun fungsi di dalam IIFE berkas pertama — kode mati yang tampak hidup.
+pub(crate) fn js() -> Result<String, String> {
+    js_dari(&dir_publik())
+}
 
-pub(crate) const JS: &str = include_str!("render.js");
+pub(crate) fn js_dari(dir: &Path) -> Result<String, String> {
+    let isi_dir = fs::read_dir(dir).map_err(|e| {
+        format!(
+            "GAGAL membaca folder aset tampilan {}: {e} (folder public/ wajib ikut bersama alat ini)",
+            dir.display()
+        )
+    })?;
+    let mut lain: Vec<String> = isi_dir
+        .filter_map(|b| b.ok())
+        .map(|b| b.path())
+        .filter(|p| p.extension().and_then(|e| e.to_str()) == Some("js"))
+        .filter_map(|p| p.file_name().and_then(|n| n.to_str()).map(str::to_string))
+        .filter(|n| n != "render.js")
+        .collect();
+    if !lain.is_empty() {
+        lain.sort();
+        return Err(format!(
+            "GAGAL: skrip halaman harus satu berkas (public/render.js), tapi ada juga: {}",
+            lain.join(", ")
+        ));
+    }
+    let path = dir.join("render.js");
+    fs::read_to_string(&path).map_err(|e| {
+        format!(
+            "GAGAL membaca aset tampilan {}: {e} (folder public/ wajib ikut bersama alat ini)",
+            path.display()
+        )
+    })
+}
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[test]
-    fn aset_ambil_dari_disk_dan_jatuh_ke_baking() {
-        let asal = "view.css";
-        let baked = "ISI-BAKING";
-        // Folder tanpa berkas aset -> pakai isi yang dibaking di binari.
-        let kosong = std::env::temp_dir().join(format!("fv-uji-kosong-{}", std::process::id()));
-        let (isi, label) = aset_dari(&kosong, asal, baked);
-        assert_eq!(label, "baking");
-        assert_eq!(isi, baked);
 
-        // Folder yang punya -> dibaca dari disk, termasuk isi yang baru ditulis barusan.
-        let hidup = std::env::temp_dir().join(format!("fv-uji-hidup-{}", std::process::id()));
-        fs::create_dir_all(&hidup).expect("buat folder uji");
-        fs::write(hidup.join(asal), "ISI-DISK").expect("tulis aset uji");
-        let (isi, label) = aset_dari(&hidup, asal, baked);
-        assert_eq!(label, "disk");
-        assert_eq!(isi, "ISI-DISK");
-        let _ = fs::remove_dir_all(&kosong);
-        let _ = fs::remove_dir_all(&hidup);
+    /// Aset dibaca dari `public/` untuk tiap uji. Dibaca lewat fungsi, bukan `const`, karena
+    /// sejak 0.5.0 tidak ada lagi salinan terbaking: aset hanya hidup di disk.
+    fn css_teks() -> String {
+        css().expect("css terbaca dari public/")
+    }
+
+    fn js_teks() -> String {
+        js().expect("js terbaca dari public/")
+    }
+    #[test]
+    fn css_digabung_urut_nama_bukan_urutan_folder() {
+        // Urutan gabungan ditentukan NAMA berkas, bukan urutan `read_dir`. Dua mesin harus
+        // menghasilkan halaman yang sama byte demi byte, dan `check` membandingkan byte.
+        let dir = std::env::temp_dir().join(format!("fv-uji-css-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("buat folder uji");
+        fs::write(dir.join("20-komponen.css"), "B{}").expect("tulis b");
+        fs::write(dir.join("10-token.css"), "A{}").expect("tulis a");
+        fs::write(dir.join("catatan.txt"), "bukan css").expect("tulis txt");
+        let gabungan = css_dari(&dir).expect("css terbaca");
+        let harapan = "/* ==== 10-token.css ==== */\nA{}\n/* ==== 20-komponen.css ==== */\nB{}\n";
+        assert_eq!(
+            gabungan, harapan,
+            "gabungan harus urut nama, berpemisah, dan mengabaikan berkas non-css"
+        );
+        // Satu berkas: tanpa penanda. Penanda yang tidak memberi tahu apa pun hanya menambah byte
+        // dan membuat halaman berubah padahal isinya sama.
+        let tunggal = std::env::temp_dir().join(format!("fv-uji-css-satu-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&tunggal);
+        fs::create_dir_all(&tunggal).expect("buat folder uji");
+        fs::write(tunggal.join("10-token.css"), "A{}").expect("tulis a");
+        assert_eq!(
+            css_dari(&tunggal).expect("css tunggal terbaca"),
+            "A{}\n",
+            "satu berkas tidak boleh diberi penanda"
+        );
+        let _ = fs::remove_dir_all(&tunggal);
+        let _ = fs::remove_dir_all(&dir);
     }
 
     #[test]
-    fn dir_aset_menunjuk_sumber_kode_tampilan_sendiri() {
-        // Aset diambil dari folder crate, bukan dari bentuk repo pemakai: di repo mana pun alat ini
-        // dipakai, `checkout` selalu punya sumbernya dan `--root` tidak boleh mengubahnya.
-        for nama in ["render.js", "view.css"] {
-            let (isi, label) = aset(nama, "ISI-BAKING");
-            assert_eq!(label, "disk", "sumber {nama} harus terbaca dari checkout alat");
-            assert!(!isi.is_empty(), "{nama} terbaca kosong");
+    fn berkas_css_publik_berprefix_angka() {
+        // Cascade bergantung urutan, dan urutan gabungan adalah urutan NAMA berkas. Prefix angka
+        // membuat urutan itu terbaca dari nama, bukan tersembunyi di kepala orang. Penjaga ini
+        // memeriksa folder publik yang sungguh dipakai, bukan folder sementara.
+        let dir = dir_publik();
+        let mut nama: Vec<String> = fs::read_dir(&dir)
+            .expect("public/ terbaca")
+            .filter_map(|b| b.ok())
+            .map(|b| b.file_name().to_string_lossy().to_string())
+            .filter(|n| n.ends_with(".css"))
+            .collect();
+        nama.sort();
+        assert!(!nama.is_empty(), "public/ harus punya minimal satu berkas CSS");
+        for n in &nama {
+            let huruf: Vec<char> = n.chars().collect();
+            let sah = huruf.len() > 4
+                && huruf[0].is_ascii_digit()
+                && huruf[1].is_ascii_digit()
+                && huruf[2] == '-'
+                && huruf.iter().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '-' || *c == '.');
+            assert!(
+                sah,
+                "berkas CSS publik harus berprefix dua angka dan huruf kecil ({n}); urutan gabungan dibaca dari nama"
+            );
         }
-        let (_, label_css) = aset("view.css", CSS);
-        let (_, label_js) = aset("render.js", JS);
-        assert_eq!(label_css, "disk");
-        assert_eq!(label_js, "disk");
+    }
+
+    #[test]
+    fn js_hanya_satu_berkas() {
+        // render.js satu IIFE: berkas kedua yang digabung tidak bisa melihat fungsinya, jadi
+        // keberadaannya ditolak — lebih jujur daripada membiarkan kode mati tampak hidup.
+        let dir = std::env::temp_dir().join(format!("fv-uji-js-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("buat folder uji");
+        fs::write(dir.join("render.js"), "(function(){})();").expect("tulis render");
+        assert!(js_dari(&dir).is_ok(), "satu berkas harus diterima");
+        fs::write(dir.join("tambahan.js"), "var x = 1;").expect("tulis tambahan");
+        let galat = js_dari(&dir).expect_err("berkas kedua harus ditolak");
+        assert!(galat.contains("tambahan.js"), "galat harus menyebut berkasnya: {galat}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn aset_hilang_menyebut_path() {
+        // Tanpa salinan terbaking, folder aset yang hilang harus berhenti dengan pesan yang
+        // menyebut path — bukan halaman tanpa gaya dan bukan panic.
+        let dir = std::env::temp_dir().join(format!("fv-uji-kosong-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).expect("buat folder uji");
+        let galat_css = css_dari(&dir).expect_err("css kosong harus galat");
+        assert!(galat_css.contains("*.css"), "galat css harus menyebut pola berkas: {galat_css}");
+        assert!(
+            galat_css.contains(&dir.display().to_string()),
+            "galat css harus menyebut folder yang dibaca: {galat_css}"
+        );
+        let galat_js = js_dari(&dir).expect_err("js hilang harus galat");
+        assert!(galat_js.contains("render.js"), "galat js harus menyebut berkasnya: {galat_js}");
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn dir_publik_menunjuk_aset_tampilan_sendiri_dan_src_hanya_rust() {
+        // Aset dibaca dari folder crate, bukan dari bentuk repo pemakai: di repo mana pun alat ini
+        // dipakai, `--root` tidak boleh mengubahnya. Dan `src/` tidak memuat aset tampilan lagi.
+        let css = css().expect("css terbaca dari public/");
+        let js = js().expect("js terbaca dari public/");
+        assert!(!css.is_empty(), "css terbaca kosong");
+        assert!(!js.is_empty(), "js terbaca kosong");
+        assert!(js.contains("var IKON = {"), "js yang terbaca bukan render.js");
+        let sisa: Vec<String> = fs::read_dir(dir_src())
+            .expect("src terbaca")
+            .filter_map(|b| b.ok())
+            .map(|b| b.file_name().to_string_lossy().to_string())
+            .filter(|n| n.ends_with(".css") || n.ends_with(".js"))
+            .collect();
+        assert!(sisa.is_empty(), "src/ masih memuat aset tampilan: {sisa:?}");
     }
 
     // ---------------------------------------------------------------------------
@@ -146,7 +304,7 @@ mod tests {
     fn tipografi_view_css_berhenti_pada_enam_langkah_token() {
         // `100%` (akar html) dan `inherit` (teks yang ikut induknya) bukan langkah
         // tipografi, jadi keduanya diizinkan sebagai struktur, bukan sebagai ukuran.
-        let nilai = deklarasi(CSS, "font-size");
+        let nilai = deklarasi(&css_teks(), "font-size");
         assert!(nilai.len() >= 30, "parser kehilangan deklarasi: hanya {} terbaca", nilai.len());
         let langkah: std::collections::BTreeSet<&str> = nilai
             .iter()
@@ -161,13 +319,13 @@ mod tests {
             );
         }
         for i in 1..=6 {
-            assert!(CSS.contains(&format!("--fs-{i}:")), "token --fs-{i} dipakai tapi tidak didefinisikan");
+            assert!(css_teks().contains(&format!("--fs-{i}:")), "token --fs-{i} dipakai tapi tidak didefinisikan");
         }
     }
 
     #[test]
     fn radius_dan_jarak_view_css_hanya_token() {
-        for v in deklarasi(CSS, "border-radius") {
+        for v in deklarasi(&css_teks(), "border-radius") {
             assert!(
                 matches!(
                     v.as_str(),
@@ -178,7 +336,7 @@ mod tests {
         }
         // Jarak: nilai pecahan (4.8px, 2.56px) adalah tanda ada orang menyetel per elemen.
         for properti in ["padding", "gap", "margin"] {
-            for v in deklarasi(CSS, properti) {
+            for v in deklarasi(&css_teks(), properti) {
                 assert!(
                     !v.chars().any(|c| c == '.') || v.contains("rem") || v.contains("var("),
                     "jarak {properti} memakai angka pecahan: {v}"
@@ -194,10 +352,10 @@ mod tests {
         // Yang boleh tidak terdefinisi di CSS hanyalah variabel yang JS suntikkan sendiri
         // lewat style.setProperty (penanda grup dan jenis relasi per simpul) — dan itu
         // hanya sah kalau penulisannya memakai bentuk bercadangan `var(--x, cadangan)`.
-        let dipakai: Vec<(String, bool)> = CSS
+        let dipakai: Vec<(String, bool)> = css_teks()
             .match_indices("var(--")
             .map(|(i, _)| {
-                let sisa = &CSS[i + 6..];
+                let sisa = &css_teks()[i + 6..];
                 let akhir = sisa
                     .find(|c: char| c == ')' || c == ',' || c.is_whitespace())
                     .unwrap_or(0);
@@ -206,10 +364,10 @@ mod tests {
             })
             .collect();
         assert!(dipakai.len() > 100, "parser kehilangan sebagian pemakaian variabel: {}", dipakai.len());
-        let didefinisikan: Vec<String> = CSS
+        let didefinisikan: Vec<String> = css_teks()
             .match_indices("\n  --")
             .map(|(i, _)| {
-                CSS[i + 2..]
+                css_teks()[i + 2..]
                     .split(':')
                     .next()
                     .unwrap_or("")
@@ -232,7 +390,7 @@ mod tests {
     /// longgar meloloskan `.papan-apa-aja` dan membuat penjaganya sendiri terlihat hijau
     /// padahal tidak mengikat apa pun.
     fn daftar_sembunyi() -> Vec<Vec<String>> {
-        CSS.split('}')
+        css_teks().split('}')
             .filter(|bagian| bagian.contains("display: none"))
             .map(|bagian| {
                 bagian
@@ -290,7 +448,7 @@ mod tests {
     /// Isi satu aturan CSS, dipilih lewat selector yang sama persis. Dipakai penjaga yang
     /// harus membaca deklarasi milik satu kelas, bukan seluruh lembar gaya.
     fn deklarasi_dari(pilihan: &str) -> String {
-        buang_komentar(CSS)
+        buang_komentar(&css_teks())
             .split('}')
             .find_map(|bagian| {
                 let (selektor, isi) = bagian.split_once('{')?;
@@ -368,13 +526,13 @@ mod tests {
     fn kunci_tema_sama_di_cangkang_dan_di_skrip() {
         // Cangkang HTML memasang data-tema sebelum lukisan pertama; skrip membaca kunci
         // yang sama nanti. Kalau salah satu berganti, pilihan user hilang tanpa pesan.
-        let skrip = aset("render.js", JS).0;
-        let cangkang = std::fs::read_to_string(dir_aset().join("halaman.rs")).expect("halaman.rs terbaca");
+        let skrip = js_teks();
+        let cangkang = std::fs::read_to_string(dir_src().join("halaman.rs")).expect("halaman.rs terbaca");
         assert!(skrip.contains("var KUNCI_TEMA = 'fv-tema'"), "render.js kehilangan kunci tema");
         assert!(cangkang.contains("var k='fv-tema'"), "cangkang HTML memakai kunci tema lain");
         // CSS tidak boleh lagi memilih skema sendiri: satu sumber kebenaran adalah atribut.
         assert!(
-            !CSS.contains("prefers-color-scheme"),
+            !css_teks().contains("prefers-color-scheme"),
             "view.css masih memilih tema lewat @media, jadi saklar tema bisa berbeda dari yang tampil"
         );
     }
@@ -388,7 +546,7 @@ mod tests {
         assert!(!bentuk.contains(&"x".to_string()), "blok lain tidak boleh terbaca: {bentuk:?}");
 
         // Sumber aslinya sendiri harus terbaca, kalau tidak, validasi ikon jadi no-op diam-diam.
-        let nyata = bentuk_terdaftar(JS);
+        let nyata = bentuk_terdaftar(&js_teks());
         assert!(
             nyata.len() >= 40,
             "kamus bentuk ikon harus terbaca dari render.js, dapat {}",

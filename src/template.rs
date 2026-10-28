@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn penjaga_merek_membuang_isi_kerangka_bukan_kodenya() {
         // Sapuan penjaga hanya kode produksi; tes ini memakai potongan yang sama dengannya.
-        let sumber = fs::read_to_string(dir_aset().join("template.rs")).expect("sumber template.rs terbaca");
+        let sumber = fs::read_to_string(dir_src().join("template.rs")).expect("sumber template.rs terbaca");
         let produksi = produksi_dari(&sumber);
         assert!(
             produksi.contains("Repo Saya"),
@@ -250,7 +250,7 @@ mod tests {
         let model = muat_model(&root).expect("manifest contoh harus valid");
         let galat = validate(&model, &root);
         assert!(galat.is_empty(), "contoh harus lolos validasi: {galat:?}");
-        let html = bangun_html(&model, "cap-uji");
+        let html = bangun_html(&model, "cap-uji").expect("halaman contoh terbangun");
         assert!(html.contains(&model.config.merek), "merek contoh harus muncul di halaman");
         assert!(html.contains("cap-uji"), "cap yang diberikan harus tertanam di halaman");
     }
@@ -265,7 +265,7 @@ mod tests {
         let root = root_contoh();
         let model = muat_model(&root).expect("manifest contoh harus valid");
         let cap = cap_manifest(&root).expect("cap manifest contoh terbaca");
-        let sekarang = bangun_html(&model, &cap);
+        let sekarang = bangun_html(&model, &cap).expect("halaman contoh terbangun");
         let di_repo = fs::read_to_string(root.join(OUTPUT_FILE))
             .unwrap_or_else(|e| panic!("halaman contoh harus tercommit: {}: {e}", root.join(OUTPUT_FILE).display()));
         // Pembandangnya kesamaan string, sama seperti yang `check` pakai; `beda_baris_pertama`
@@ -325,7 +325,7 @@ mod tests {
         // Aturan yang sama untuk nama repo asli, sekarang untuk dataset contoh: kalau kunci bentuk
         // atau teks di render.js meniru nama contoh, alat ini masih "tahu" datanya.
         let model = muat_model(&root_contoh()).expect("manifest contoh harus valid");
-        let sumber_lower = fs::read_to_string(dir_aset().join("render.js"))
+        let sumber_lower = fs::read_to_string(dir_publik().join("render.js"))
             .expect("sumber render.js terbaca")
             .to_lowercase();
         let mut nama: Vec<String> = Vec::new();
@@ -352,7 +352,7 @@ mod tests {
             "kode tampilan mengenal nama dataset contoh: {menyangkut:?}"
         );
         let banding: Vec<String> = nama.iter().map(|n| n.to_lowercase()).collect();
-        let tabrakan: Vec<String> = bentuk_terdaftar(JS)
+        let tabrakan: Vec<String> = bentuk_terdaftar(&js().expect("render.js terbaca dari public/"))
             .into_iter()
             .filter(|b| banding.contains(&b.to_lowercase()))
             .collect();
